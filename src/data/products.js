@@ -1,0 +1,165 @@
+import moonLite from '@/assets/products/moon-lite.png'
+import katori from '@/assets/products/katori.png'
+import dhamalChokdi from '@/assets/products/dhamal-chokdi.png'
+import noodles from '@/assets/products/noodles.png'
+import pasta5pm from '@/assets/products/5pm-pasta.png'
+import saltedPipe from '@/assets/products/salted-pipe.png'
+import zigZac from '@/assets/products/zig-zac.png'
+
+export const products = [
+  {
+    id: 1,
+    slug: 'moon-lite',
+    name: 'Moon Lite',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: moonLite,
+    tagline: 'Crispy Delight',
+    description:
+      'Golden cup-shaped puffed snacks with a perfect crunch. Moon Lite delivers an irresistible crispy delight that wins hearts with every bite.',
+    rating: 4.8,
+    reviewCount: 1240,
+    isVeg: true,
+    isNew: false,
+    flavor: 'Tomato Masala',
+    nutrition: { calories: 480, fat: '22g', protein: '6g', carbs: '62g' },
+    ingredients: ['Corn Grits', 'Edible Vegetable Oil', 'Spices & Condiments', 'Salt', 'Tomato Powder'],
+    storage: 'Store in a cool, dry place. Keep away from direct sunlight.',
+  },
+  {
+    id: 2,
+    slug: 'katori',
+    name: 'Katori',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: katori,
+    tagline: 'Crispy Delight',
+    description:
+      'Bowl-shaped crispy snacks crafted for the perfect munch. Katori brings authentic Indian flavors in every golden cup.',
+    rating: 4.7,
+    reviewCount: 980,
+    isVeg: true,
+    isNew: true,
+    flavor: 'Tomato Ketchup',
+    nutrition: { calories: 465, fat: '20g', protein: '5g', carbs: '64g' },
+    ingredients: ['Corn Grits', 'Edible Vegetable Oil', 'Spices', 'Tomato Seasoning', 'Salt'],
+    storage: 'Store in a cool, dry place. Once opened, consume within 3 days.',
+  },
+  {
+    id: 3,
+    slug: 'dhamal-chokdi',
+    name: 'Dhamal Chokdi',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: dhamalChokdi,
+    tagline: 'Spicy Cross Crunch',
+    description:
+      'Unique cross-shaped puffed crisps with bold masala seasoning. Dhamal Chokdi is pure dhamal in every crunch.',
+    rating: 4.6,
+    reviewCount: 870,
+    isVeg: true,
+    isNew: false,
+    flavor: 'Masala',
+    nutrition: { calories: 490, fat: '23g', protein: '5g', carbs: '60g' },
+    ingredients: ['Corn Grits', 'Edible Vegetable Oil', 'Red Chilli', 'Garlic', 'Spices', 'Salt'],
+    storage: 'Store in airtight container after opening.',
+  },
+  {
+    id: 4,
+    slug: 'noodles',
+    name: 'Noodles',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: noodles,
+    tagline: 'Crispy & Crunchy',
+    description:
+      'Extruded cereal sticks fried to golden perfection. ZAY\'LO Noodles — the namkeen that never goes out of style.',
+    rating: 4.9,
+    reviewCount: 2100,
+    isVeg: true,
+    isNew: false,
+    flavor: 'Classic Masala',
+    nutrition: { calories: 510, fat: '24g', protein: '7g', carbs: '58g' },
+    ingredients: ['Cereals', 'Edible Vegetable Oil', 'Spices', 'Green Peas', 'Tomato', 'Salt'],
+    storage: 'Store in cool, dry place. Best before date on pack.',
+  },
+  {
+    id: 5,
+    slug: '5pm-pasta',
+    name: '5PM Pasta',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: pasta5pm,
+    tagline: 'Italian Peri Peri Masala',
+    description:
+      'Penne-shaped pasta snacks with peri peri masala coating. Perfect for your 5PM hunger — Italian flair, Indian spice.',
+    rating: 4.8,
+    reviewCount: 1560,
+    isVeg: true,
+    isNew: true,
+    flavor: 'Peri Peri Masala',
+    nutrition: { calories: 475, fat: '21g', protein: '6g', carbs: '61g' },
+    ingredients: ['Corn Flour', 'Edible Vegetable Oil', 'Peri Peri Seasoning', 'Tomato Powder', 'Salt'],
+    storage: 'Keep in cool, dry place away from moisture.',
+  },
+  {
+    id: 6,
+    slug: 'salted-pipe',
+    name: 'Salted Pipe',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: saltedPipe,
+    tagline: 'Spicy & Yummy Taste',
+    description:
+      'Hollow pipe-shaped extruded snacks with a perfectly salted crunch. Light, airy, and addictively delicious.',
+    rating: 4.5,
+    reviewCount: 720,
+    isVeg: true,
+    isNew: false,
+    flavor: 'Salted',
+    nutrition: { calories: 450, fat: '18g', protein: '4g', carbs: '65g' },
+    ingredients: ['Corn Grits', 'Edible Vegetable Oil', 'Salt', 'Spices'],
+    storage: 'Store in cool, dry place. Reseal after opening.',
+  },
+  {
+    id: 7,
+    slug: 'zig-zac',
+    name: 'Zig Zac',
+    category: 'namkeen',
+    price: 5,
+    mrp: 5,
+    weight: '1 Pack',
+    image: zigZac,
+    tagline: 'Spicy Flavour Delicious',
+    description:
+      'Crinkle-cut rectangular chips with bold spicy seasoning. Zig Zac — zigzag your way to flavor heaven.',
+    rating: 4.7,
+    reviewCount: 1340,
+    isVeg: true,
+    isNew: false,
+    flavor: 'Spicy',
+    nutrition: { calories: 495, fat: '22g', protein: '5g', carbs: '63g' },
+    ingredients: ['Potato Starch', 'Corn Grits', 'Edible Vegetable Oil', 'Green Chilli', 'Spices', 'Salt'],
+    storage: 'Store in cool, dry place. Consume before expiry.',
+  },
+]
+
+export function getProductBySlug(slug) {
+  return products.find((p) => p.slug === slug)
+}
+
+export function getRelatedProducts(slug, limit = 4) {
+  return products.filter((p) => p.slug !== slug).slice(0, limit)
+}

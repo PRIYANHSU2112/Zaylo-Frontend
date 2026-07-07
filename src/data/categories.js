@@ -1,0 +1,18 @@
+export const categories = [
+  { id: 'moon-lite', name: 'Moon Lite', slug: 'moon-lite', comingSoon: false, color: 'from-brand-primary to-brand-orange' },
+  { id: 'katori', name: 'Katori', slug: 'katori', comingSoon: false, color: 'from-brand-primary to-brand-yellow' },
+  { id: 'dhamal-chokdi', name: 'Dhamal Chokdi', slug: 'dhamal-chokdi', comingSoon: false, color: 'from-brand-primary to-brand-yellow' },
+  { id: 'noodles', name: 'Noodles', slug: 'noodles', comingSoon: false, color: 'from-brand-primary to-brand-primary/70' },
+  { id: '5pm-pasta', name: '5PM Pasta', slug: '5pm-pasta', comingSoon: false, color: 'from-brand-primary to-brand-orange' },
+  { id: 'salted-pipe', name: 'Salted Pipe', slug: 'salted-pipe', comingSoon: false, color: 'from-brand-orange to-brand-yellow' },
+  { id: 'zig-zac', name: 'Zig Zac', slug: 'zig-zac', comingSoon: false, color: 'from-surface-dark to-brand-primary' },
+  { id: 'chips', name: 'Chips', slug: 'chips', comingSoon: true, color: 'from-brand-yellow to-brand-orange' },
+  { id: 'namkeen', name: 'Namkeen', slug: 'namkeen', comingSoon: true, color: 'from-brand-primary to-brand-gold' },
+  { id: 'ready-to-eat', name: 'Ready To Eat', slug: 'ready-to-eat', comingSoon: true, color: 'from-brand-primary to-brand-yellow' },
+  { id: 'frozen', name: 'Frozen Foods', slug: 'frozen', comingSoon: true, color: 'from-blue-400 to-brand-primary' },
+  { id: 'healthy', name: 'Healthy Snacks', slug: 'healthy', comingSoon: true, color: 'from-brand-primary to-emerald-400' },
+  { id: 'kids', name: 'Kids Snacks', slug: 'kids', comingSoon: true, color: 'from-brand-yellow to-pink-400' },
+  { id: 'beverages', name: 'Beverages', slug: 'beverages', comingSoon: true, color: 'from-brand-orange to-brand-primary' },
+  { id: 'seasonal', name: 'Seasonal', slug: 'seasonal', comingSoon: true, color: 'from-brand-gold to-brand-primary' },
+  { id: 'biscuits', name: 'Biscuits', slug: 'biscuits', comingSoon: true, color: 'from-amber-400 to-brand-yellow' },
+]
