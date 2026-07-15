@@ -9,6 +9,8 @@ export default function DownloadApp() {
         <Reveal className="app-section">
           <div className="green-dot -left-20 -top-20" />
           <div className="green-dot -bottom-32 -right-32" />
+
+          
           
           <div className="relative z-10 grid items-center gap-12 p-8 md:grid-cols-2 md:p-16 lg:p-20">
             {/* Left: Phone mockup */}
