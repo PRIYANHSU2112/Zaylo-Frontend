@@ -4,8 +4,23 @@ import { blogPosts } from '@/data/blog'
 import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Blog() {
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "ZAY'LO Snacks Blog",
+    "description": "Read the latest news, manufacturing stories, and delicious snack recipes from ZAY'LO Snacks.",
+    "url": "https://zaylosnacks.com/blog",
+    "blogPost": blogPosts.map((post) => ({
+      "@type": "BlogPosting",
+      "headline": post.title,
+      "description": post.excerpt,
+      "image": post.image
+    }))
+  }
+
   const [activeCategory, setActiveCategory] = useState('All')
   
   const categories = ['All', ...new Set(blogPosts.map(post => post.category))]
@@ -20,6 +35,12 @@ export default function Blog() {
 
   return (
     <div className="bg-background min-h-screen pb-24">
+      <SEO
+        title="Insights, Recipes & Company News"
+        description="Discover the secrets behind ZAY'LO's unique crunch, sustainability initiatives, and creative snack recipes. Explore insights directly from our team."
+        path="/blog"
+        structuredData={blogSchema}
+      />
       <PageHero
         title="Our Blog"
         subtitle="Insights, recipes, and news from the ZAY'LO family."

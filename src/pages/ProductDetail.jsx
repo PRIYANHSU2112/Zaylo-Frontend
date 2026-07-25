@@ -10,6 +10,7 @@ import { RevealStagger } from '@/components/shared/Reveal'
 import { useStore } from '@/context/StoreContext'
 import { getProductBySlug, getRelatedProducts } from '@/data/products'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 const tabs = ['Description', 'Nutrition', 'Ingredients', 'Storage']
 
@@ -23,6 +24,11 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="section-container flex min-h-[50vh] flex-col items-center justify-center py-20">
+        <SEO
+          title="Product Not Found"
+          description="The requested product could not be found. View our complete catalog of crispy ZAY'LO snacks."
+          path={`/products/${slug}`}
+        />
         <h1 className="text-2xl font-bold text-main">Product Not Found</h1>
         <Link to="/products" className="mt-4 text-brand-primary hover:underline">Back to Products</Link>
       </div>
@@ -31,8 +37,39 @@ export default function ProductDetail() {
 
   const related = getRelatedProducts(slug, 4)
 
+  const productImageAbsolute = product.image 
+    ? (product.image.startsWith('http') ? product.image : `https://zaylosnacks.com${product.image}`)
+    : undefined;
+
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "image": productImageAbsolute,
+    "description": product.description,
+    "brand": {
+      "@type": "Brand",
+      "name": "ZAY'LO"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": `https://zaylosnacks.com/products/${product.slug}`,
+      "priceCurrency": "INR",
+      "price": product.price,
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": "https://schema.org/InStock"
+    }
+  }
+
   return (
     <div className="bg-background">
+      <SEO
+        title={`${product.name} - ${product.tagline}`}
+        description={`${product.description} Flavor: ${product.flavor}. Indulge in our 100% vegetarian crispy puffed snacks, made to perfection.`}
+        path={`/products/${product.slug}`}
+        ogImage={productImageAbsolute}
+        structuredData={productSchema}
+      />
       <div className="border-b border-border-subtle bg-surface py-5">
         <div className="section-container">
           <Breadcrumb

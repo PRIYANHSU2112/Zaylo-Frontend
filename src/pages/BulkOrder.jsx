@@ -4,8 +4,17 @@ import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import Button from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
+import SEO from '@/components/shared/SEO'
 
 export default function BulkOrder() {
+  const bulkOrderSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Corporate & Bulk Snack Orders",
+    "description": "Inquire about bulk orders, wholesale accounts, or corporate gifts directly from the ZAY'LO factory.",
+    "url": "https://zaylosnacks.com/bulk-order"
+  }
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -27,6 +36,12 @@ export default function BulkOrder() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
+      <SEO
+        title="Bulk & Institutional Orders"
+        description="Place bulk orders for events, festivals, wholesale distribution, or retail stores directly from the ZAY'LO factory. Special volume-based pricing available."
+        path="/bulk-order"
+        structuredData={bulkOrderSchema}
+      />
       <PageHero
         title="Corporate & Bulk Orders"
         subtitle="Premium Indian snacks for your events, office pantry, or wholesale distribution."

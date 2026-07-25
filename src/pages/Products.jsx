@@ -9,8 +9,22 @@ import { RevealStagger } from '@/components/shared/Reveal'
 import { products } from '@/data/products'
 import { categories } from '@/data/categories'
 import { Link } from 'react-router-dom'
+import SEO from '@/components/shared/SEO'
 
 export default function Products() {
+  const productsSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "ZAY'LO Snacks",
+    "description": "Our complete list of premium crispy puffed snacks, pasta snacks, and crinkle-cut chips.",
+    "numberOfItems": products.length,
+    "itemListElement": products.map((p, idx) => ({
+      "@type": "ListItem",
+      "position": idx + 1,
+      "url": `https://zaylosnacks.com/products/${p.slug}`,
+      "name": p.name
+    }))
+  }
   const [search, setSearch] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
   const [sortBy, setSortBy] = useState('popular')
@@ -60,6 +74,12 @@ export default function Products() {
 
   return (
     <div className="bg-background">
+      <SEO
+        title="Shop Crispy Namkeen & Puffed Snacks"
+        description="Explore the full ZAY'LO snacks range: Moon Lite, Katori, Dhamal Chokdi, Noodles, 5PM Pasta, Salted Pipe, and Zig Zac chips. Premium quality at an unbeatable value."
+        path="/products"
+        structuredData={productsSchema}
+      />
       <PageHero
         title="All Products"
         subtitle="Seven iconic ZAY'LO flavours — premium quality, unbeatable ₹5 value."

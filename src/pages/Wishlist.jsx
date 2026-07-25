@@ -5,6 +5,7 @@ import Reveal from '@/components/shared/Reveal'
 import PageHero from '@/components/shared/PageHero'
 import Button from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Wishlist() {
   const { wishlist, toggleWishlist, addToCart } = useStore()
@@ -12,6 +13,11 @@ export default function Wishlist() {
   if (wishlist.length === 0) {
     return (
       <div className="bg-background min-h-screen">
+        <SEO
+          title="My Wishlist"
+          description="View your saved items at ZAY'LO Snacks."
+          path="/wishlist"
+        />
         <PageHero
           title="Your Wishlist"
           subtitle="You haven't saved any items yet."
@@ -34,6 +40,11 @@ export default function Wishlist() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
+      <SEO
+        title="My Wishlist"
+        description="View your saved items at ZAY'LO Snacks."
+        path="/wishlist"
+      />
       <PageHero
         title="Your Wishlist"
         subtitle={`You have ${wishlist.length} saved items.`}

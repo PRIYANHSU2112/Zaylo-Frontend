@@ -6,8 +6,23 @@ import Reveal from '@/components/shared/Reveal'
 import { Input, Textarea } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { contactInfo } from '@/data/content'
+import SEO from '@/components/shared/SEO'
 
 export default function Contact() {
+  const contactSchema = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Contact ZAY'LO Snacks",
+    "description": "Get in touch with the team at ZAY'LO Snacks for corporate, distribution, or customer support questions.",
+    "url": "https://zaylosnacks.com/contact",
+    "publisher": {
+      "@type": "Organization",
+      "name": "ZAY'LO Snacks",
+      "url": "https://zaylosnacks.com",
+      "logo": "https://zaylosnacks.com/assets/brand/zaylo-logo.png"
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     alert('Thank you! We will get back to you within 24 hours.')
@@ -15,6 +30,12 @@ export default function Contact() {
 
   return (
     <div className="bg-background">
+      <SEO
+        title="Get in Touch"
+        description="Have questions or feedback? Contact ZAY'LO Snacks corporate offices, zero-waste factory, or customer support team today."
+        path="/contact"
+        structuredData={contactSchema}
+      />
       <PageHero
         title="Contact Us"
         subtitle="We'd love to hear from you — whether you're a customer, retailer, or potential dealer partner."

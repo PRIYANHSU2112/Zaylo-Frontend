@@ -9,8 +9,17 @@ import Button from '@/components/ui/Button'
 import { dealerContent, testimonials } from '@/data/content'
 import { promoBanners } from '@/data/banners'
 import { products } from '@/data/products'
+import SEO from '@/components/shared/SEO'
 
 export default function Dealer() {
+  const dealerSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Become a ZAY'LO Snacks Distributor",
+    "description": "Register interest in joining ZAY'LO's distributing family and expanding our premium namkeen snacks presence in your region.",
+    "url": "https://zaylosnacks.com/dealer"
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     alert('Application submitted! Our team will contact you within 48 hours.')
@@ -18,6 +27,12 @@ export default function Dealer() {
 
   return (
     <div className="bg-background">
+      <SEO
+        title="Become a Distributor"
+        description="Partner with ZAY'LO Snacks. Submit your business registration today to join our distribution network and sell our popular, high-margin puffed snacks."
+        path="/dealer"
+        structuredData={dealerSchema}
+      />
       <PromoBanner
         banner={promoBanners.find((b) => b.id === 'dealer')}
         variant="dark"

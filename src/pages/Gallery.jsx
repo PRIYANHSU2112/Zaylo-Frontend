@@ -4,8 +4,17 @@ import { galleryImages } from '@/data/gallery'
 import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Gallery() {
+  const gallerySchema = {
+    "@context": "https://schema.org",
+    "@type": "ImageGallery",
+    "name": "ZAY'LO Snacks Image Gallery",
+    "description": "Browse high-quality pictures of ZAY'LO crispy snacks, production steps, and community moments.",
+    "url": "https://zaylosnacks.com/gallery"
+  }
+
   const [activeCategory, setActiveCategory] = useState('All')
   
   const categories = ['All', ...new Set(galleryImages.map(img => img.category))]
@@ -16,6 +25,12 @@ export default function Gallery() {
 
   return (
     <div className="bg-background min-h-screen pb-24">
+      <SEO
+        title="Snack Gallery & Factory Photos"
+        description="Browse high-resolution photographs of ZAY'LO namkeen, our clean and modern manufacturing environment, and moments with our happy customers."
+        path="/gallery"
+        structuredData={gallerySchema}
+      />
       <PageHero
         title="Our Gallery"
         subtitle="Explore the world of ZAY'LO through our lens."

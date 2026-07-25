@@ -6,6 +6,7 @@ import Reveal from '@/components/shared/Reveal'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Profile() {
   const { user } = useStore()
@@ -25,6 +26,11 @@ export default function Profile() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
+      <SEO
+        title="My Profile"
+        description="View your orders, update addresses, and manage your ZAY'LO Snacks account settings."
+        path="/profile"
+      />
       <PageHero
         title="My Profile"
         subtitle={`Welcome back, ${user.name.split(' ')[0]}!`}

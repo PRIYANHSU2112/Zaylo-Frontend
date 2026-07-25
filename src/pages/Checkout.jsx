@@ -7,6 +7,7 @@ import PageHero from '@/components/shared/PageHero'
 import Button from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Checkout() {
   const { cart, cartTotal, user, clearCart } = useStore()
@@ -37,6 +38,11 @@ export default function Checkout() {
   if (step === 3) {
     return (
       <div className="bg-background min-h-screen flex items-center justify-center p-6 text-center pb-32">
+        <SEO
+          title="Order Success"
+          description="Your ZAY'LO Snacks order has been placed successfully."
+          path="/checkout"
+        />
         <Reveal className="max-w-md w-full bg-surface rounded-[2rem] p-10 shadow-card border border-border-subtle flex flex-col items-center">
           <div className="h-20 w-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="h-10 w-10 text-emerald-500" />
@@ -60,6 +66,11 @@ export default function Checkout() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
+      <SEO
+        title="Checkout"
+        description="Checkout and complete your purchase of ZAY'LO Snacks."
+        path="/checkout"
+      />
       <div className="border-b border-border-subtle bg-surface/50 sticky top-[5.5rem] md:top-[6.5rem] z-30 backdrop-blur-md">
         <div className="section-container py-4 flex items-center text-sm font-medium">
           <button 

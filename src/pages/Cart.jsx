@@ -5,6 +5,7 @@ import Reveal from '@/components/shared/Reveal'
 import PageHero from '@/components/shared/PageHero'
 import Button from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
+import SEO from '@/components/shared/SEO'
 
 export default function Cart() {
   const { cart, updateCartItem, removeFromCart, cartTotal } = useStore()
@@ -16,6 +17,11 @@ export default function Cart() {
   if (cart.length === 0) {
     return (
       <div className="bg-background min-h-screen">
+        <SEO
+          title="Shopping Cart"
+          description="Review your ZAY'LO Snacks shopping cart before checking out."
+          path="/cart"
+        />
         <PageHero
           title="Your Cart"
           subtitle="It looks like you haven't added anything yet."
@@ -38,6 +44,11 @@ export default function Cart() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
+      <SEO
+        title="Shopping Cart"
+        description="Review your ZAY'LO Snacks shopping cart before checking out."
+        path="/cart"
+      />
       <PageHero
         title="Your Cart"
         subtitle="Review your items before checkout."

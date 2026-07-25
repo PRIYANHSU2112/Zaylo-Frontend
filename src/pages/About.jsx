@@ -6,10 +6,30 @@ import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import { aboutContent } from '@/data/content'
 import { promoBanners } from '@/data/banners'
+import SEO from '@/components/shared/SEO'
 
 export default function About() {
+  const aboutSchema = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "name": "About ZAY'LO Snacks",
+    "description": "Discover our story, mission, and dedication to delicious, high-quality zero-waste manufacturing puffed snacks.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "ZAY'LO Snacks",
+      "url": "https://zaylosnacks.com",
+      "logo": "https://zaylosnacks.com/assets/brand/zaylo-logo.png"
+    }
+  }
+
   return (
     <div className="bg-background">
+      <SEO
+        title="Our Story & Zero-Waste Manufacturing"
+        description="Learn about ZAY'LO Snacks' history, our team, our mission, and our zero-waste manufacturing processes. Quality, crunch, and sustainability combined."
+        path="/about"
+        structuredData={aboutSchema}
+      />
       <PageHero
         title="Our Story"
         subtitle={aboutContent.story}
