@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Search, Heart, ShoppingBag, User, Menu, X, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useScrollHeader } from '@/hooks/useScrollHeader'
 import { useStore } from '@/context/StoreContext'
+import { useAuth } from '@/context/AuthContext'
 import { primaryNav, secondaryNav } from '@/data/navigation'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/shared/Logo'
@@ -15,6 +16,17 @@ export default function Header({ transparent = false }) {
   const { cartCount, wishlist } = useStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const { isAuthenticated, user } = useAuth()
+  const navigate = useNavigate()
+
+  const submitSearch = (e) => {
+    e.preventDefault()
+    const q = searchTerm.trim()
+    setSearchOpen(false)
+    navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
+  }
   const location = useLocation()
   const isHome = location.pathname === '/'
   const isTransparent = transparent && isHome && !scrolled
@@ -29,6 +41,7 @@ export default function Header({ transparent = false }) {
   useEffect(() => {
     setMobileOpen(false)
     setMoreOpen(false)
+    setSearchOpen(false)
   }, [location.pathname])
 
   // Body scroll lock for mobile menu
@@ -46,8 +59,9 @@ export default function Header({ transparent = false }) {
     if (e.key === 'Escape') {
       if (mobileOpen) setMobileOpen(false)
       if (moreOpen) setMoreOpen(false)
+      if (searchOpen) setSearchOpen(false)
     }
-  }, [mobileOpen, moreOpen])
+  }, [mobileOpen, moreOpen, searchOpen])
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
@@ -66,8 +80,8 @@ export default function Header({ transparent = false }) {
               : 'border-b border-border-subtle/50 bg-surface/80 backdrop-blur-xl',
         )}
       >
-        <div className="section-container flex h-[5.5rem] items-center justify-between gap-6 md:h-[6.5rem]">
-          <Logo size="lg" className="drop-shadow-md" />
+        <div className="section-container flex h-[4.75rem] items-center justify-between gap-6 md:h-24">
+          <Logo size="nav" className="drop-shadow-sm" />
 
           <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main navigation">
             {primaryNav.map((item) => (
@@ -148,6 +162,8 @@ export default function Header({ transparent = false }) {
                   key={label}
                   type="button"
                   aria-label={label}
+                  aria-expanded={searchOpen}
+                  onClick={() => setSearchOpen((v) => !v)}
                   className={cn(
                     'rounded-full p-2.5 transition-colors duration-200',
                     hide,
@@ -181,14 +197,15 @@ export default function Header({ transparent = false }) {
               )
             ))}
             <Link
-              to="/profile"
+              to={isAuthenticated ? '/profile' : '/login'}
+              title={isAuthenticated ? user?.name : 'Log in'}
               className={cn(
                 'hidden rounded-full p-2.5 transition-colors duration-200 md:block',
                 isTransparent
                   ? 'text-main/60 hover:bg-brand-primary/10 hover:text-brand-primary'
                   : 'text-muted hover:bg-brand-primary-light hover:text-brand-primary',
               )}
-              aria-label="Profile"
+              aria-label={isAuthenticated ? 'My account' : 'Log in'}
             >
               <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.75} />
             </Link>
@@ -207,6 +224,33 @@ export default function Header({ transparent = false }) {
             </button>
           </div>
         </div>
+        <AnimatePresence>
+          {searchOpen && (
+            <motion.form
+              onSubmit={submitSearch}
+              role="search"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-x-0 top-full border-b border-border-subtle bg-surface shadow-card"
+            >
+              <div className="section-container flex items-center gap-3 py-3">
+                <Search className="h-5 w-5 shrink-0 text-muted" />
+                <input
+                  autoFocus
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search snacks by name or flavour…"
+                  aria-label="Search products"
+                  className="flex-1 bg-transparent py-2 text-sm text-main outline-none placeholder:text-muted"
+                />
+                <Button type="submit" className="!px-5 !py-2 !text-xs">Search</Button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Mobile Menu with slide animation */}
@@ -239,7 +283,7 @@ export default function Header({ transparent = false }) {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Mobile navigation">
+              <nav className="flex-1 overflow-y-auto overscroll-none px-3 py-4" aria-label="Mobile navigation">
                 {[...primaryNav, ...secondaryNav].map((item) => (
                   <Link
                     key={item.label}
@@ -252,7 +296,10 @@ export default function Header({ transparent = false }) {
                   </Link>
                 ))}
               </nav>
-              <div className="border-t border-border-subtle p-4">
+              <div className="space-y-2 border-t border-border-subtle p-4">
+                <Link to={isAuthenticated ? '/profile' : '/login'} onClick={() => setMobileOpen(false)}>
+                  <Button variant="secondary" className="w-full">{isAuthenticated ? 'My account' : 'Log in / Sign up'}</Button>
+                </Link>
                 <Link to="/dealer" onClick={() => setMobileOpen(false)}>
                   <Button variant="primary" className="w-full">Become Dealer</Button>
                 </Link>

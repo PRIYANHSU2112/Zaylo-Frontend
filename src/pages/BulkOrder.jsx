@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLeadForm } from '@/hooks/useLeadForm'
 import { CheckCircle2, Package, Building2, Truck, Users } from 'lucide-react'
 import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
@@ -15,17 +15,8 @@ export default function BulkOrder() {
     "url": "https://zaylosnacks.com/bulk-order"
   }
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSuccess(true)
-    }, 1500)
-  }
+  const lead = useLeadForm('/bulk-orders')
+  const isSuccess = lead.submitted
 
   const features = [
     { icon: Building2, title: 'Direct from Factory', desc: 'No middlemen. Get fresh stock straight from our manufacturing unit.' },
@@ -85,25 +76,25 @@ export default function BulkOrder() {
                 <p className="text-muted mb-8 max-w-sm">
                   Thank you for your interest in ZAY'LO. Our bulk order team will review your requirements and get back to you within 24 hours.
                 </p>
-                <Button onClick={() => setIsSuccess(false)} variant="outline">
+                <Button onClick={lead.reset} variant="outline">
                   Submit Another Request
                 </Button>
               </div>
             ) : (
               <>
                 <h3 className="text-2xl font-bold text-main mb-6 relative z-10">Request a Quote</h3>
-                <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+                <form onSubmit={lead.onSubmit} className="space-y-5 relative z-10">
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Input label="Full Name" placeholder="John Doe" required />
-                    <Input label="Company Name" placeholder="ABC Corp" required />
+                    <Input name="name" label="Full Name" required minLength={2} autoComplete="name" />
+                    <Input name="companyName" label="Company Name" required autoComplete="organization" />
                   </div>
                   
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Input label="Email Address" type="email" placeholder="john@example.com" required />
-                    <Input label="Phone Number" type="tel" placeholder="+91 98765 43210" required />
+                    <Input name="email" label="Email Address" type="email" required autoComplete="email" />
+                    <Input name="phone" label="Phone Number" type="tel" required pattern="[0-9+-s]{7,15}" autoComplete="tel" />
                   </div>
 
-                  <Select label="Inquiry Type" required>
+                  <Select name="inquiryType" label="Inquiry Type" required>
                     <option value="">Select an option</option>
                     <option value="corporate">Corporate Gifting / Office Pantry</option>
                     <option value="wholesale">Wholesale / Distribution</option>
@@ -111,17 +102,18 @@ export default function BulkOrder() {
                     <option value="events">Weddings / Events</option>
                   </Select>
 
-                  <Select label="Estimated Order Value (₹)" required>
+                  <Select name="estimatedOrderValue" label="Estimated Order Value (₹)" required>
                     <option value="">Select range</option>
                     <option value="10k-50k">10,000 - 50,000</option>
                     <option value="50k-1L">50,000 - 1,00,000</option>
                     <option value="1L+">1,00,000+</option>
                   </Select>
 
-                  <Textarea label="Additional Details" placeholder="Tell us about specific products, quantities, or packaging requirements..." required />
+                  <Textarea name="details" label="Additional Details" placeholder="Tell us about specific products, quantities, or packaging requirements..." required />
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                  {lead.error && <p className="text-sm text-red-600" role="alert">{lead.error}</p>}
+                  <Button type="submit" className="w-full" disabled={lead.pending}>
+                    {lead.pending ? 'Submitting...' : 'Submit Request'}
                   </Button>
                 </form>
               </>

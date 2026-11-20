@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { Calendar, Clock, ArrowRight } from 'lucide-react'
-import { blogPosts } from '@/data/blog'
+import { useBlogs } from '@/hooks/useCatalog'
+import { EmptyState, ErrorState, Skeleton } from '@/components/shared/States'
 import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import { cn } from '@/utils/cn'
 import SEO from '@/components/shared/SEO'
 
 export default function Blog() {
+  const blogsQuery = useBlogs()
+  const blogPosts = blogsQuery.data?.data || []
   const blogSchema = {
     "@context": "https://schema.org",
     "@type": "Blog",
@@ -47,6 +50,11 @@ export default function Blog() {
       />
 
       <div className="section-container mt-8">
+        {blogsQuery.isLoading && (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-80 rounded-[1.75rem]" />)}</div>
+        )}
+        {blogsQuery.isError && <ErrorState title="Couldn't load articles" error={blogsQuery.error} onRetry={blogsQuery.refetch} />}
+        {blogsQuery.isSuccess && !blogPosts.length && <EmptyState title="No articles yet" message="Check back soon for news and recipes." />}
         {/* Category Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-12">
           {categories.map((category) => (
@@ -69,7 +77,7 @@ export default function Blog() {
         {featuredPost && (
           <Reveal className="mb-12">
             <div className="group relative overflow-hidden rounded-[2rem] bg-surface shadow-card border border-border-subtle grid md:grid-cols-2 min-h-[400px]">
-              <div className="relative h-64 md:h-full overflow-hidden">
+              <div className="skeleton-shimmer relative h-64 md:h-full overflow-hidden">
                 <img 
                   src={featuredPost.image} 
                   alt={featuredPost.title}
@@ -92,9 +100,9 @@ export default function Blog() {
                     <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {featuredPost.date}</div>
                     <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {featuredPost.readTime}</div>
                   </div>
-                  <button className="flex items-center justify-center h-10 w-10 rounded-full bg-brand-primary text-white transition-transform group-hover:translate-x-2 shadow-sm">
+                  <span aria-hidden="true" className="flex items-center justify-center h-10 w-10 rounded-full bg-brand-primary text-white shadow-sm">
                     <ArrowRight className="h-5 w-5" />
-                  </button>
+                  </span>
                 </div>
               </div>
             </div>
@@ -106,7 +114,7 @@ export default function Blog() {
           {gridPosts.map((post, i) => (
             <Reveal key={post.id} delay={i * 0.1}>
               <div className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-surface shadow-card border border-border-subtle hover:shadow-hover transition-all duration-300">
-                <div className="relative h-56 overflow-hidden">
+                <div className="skeleton-shimmer relative h-56 overflow-hidden">
                   <img 
                     src={post.image} 
                     alt={post.title}

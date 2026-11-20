@@ -1,63 +1,78 @@
-import Hero from '@/components/home/Hero'
+import HeroCarousel from '@/components/home/HeroCarousel'
 import FeaturedCategories from '@/components/home/FeaturedCategories'
-import TopProducts from '@/components/home/TopProducts'
+import ProductSection from '@/components/home/ProductSection'
 import BundlePacks from '@/components/home/BundlePacks'
 import CustomerReviews from '@/components/home/CustomerReviews'
 import TrustedBy from '@/components/home/TrustedBy'
 import PromoBanner from '@/components/shared/PromoBanner'
-import { promoBanners } from '@/data/banners'
 import SEO from '@/components/shared/SEO'
+import { ErrorState, Skeleton } from '@/components/shared/States'
+import { useHome } from '@/hooks/useHome'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 
 export default function Home() {
+  const { home, isLoading, isError, error, refetch } = useHome()
+  const { settings } = useSiteSettings()
+
+  // Admin → Banners placements (scheduled & active only, from GET /home)
+  const middleBanner = home.banners?.['home-middle']?.[0]
+  const bottomBanner = home.banners?.['home-bottom']?.[0]
+  const bannerProducts = home.featuredProducts?.length ? home.featuredProducts : home.popularProducts
+
+  const siteName = settings.general?.siteName || "ZAY'LO Snacks"
+  const siteUrl = (settings.brand?.siteUrl || 'https://zaylosnacks.com').replace(/\/+$/, '')
+  const logoUrl = settings.brand?.logoUrl || `${siteUrl}/assets/brand/zaylo-logo.png`
+
   const homeSchema = {
-    "@context": "https://schema.org",
-    "@graph": [
+    '@context': 'https://schema.org',
+    '@graph': [
       {
-        "@type": "Organization",
-        "@id": "https://zaylosnacks.com/#organization",
-        "name": "ZAY'LO Snacks",
-        "url": "https://zaylosnacks.com",
-        "logo": "https://zaylosnacks.com/assets/brand/zaylo-logo.png"
+        '@type': 'Organization',
+        '@id': `${siteUrl}/#organization`,
+        name: siteName,
+        url: siteUrl,
+        logo: logoUrl,
       },
       {
-        "@type": "WebSite",
-        "@id": "https://zaylosnacks.com/#website",
-        "url": "https://zaylosnacks.com",
-        "name": "ZAY'LO Snacks",
-        "publisher": { "@id": "https://zaylosnacks.com/#organization" }
-      }
-    ]
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        url: siteUrl,
+        name: siteName,
+        publisher: { '@id': `${siteUrl}/#organization` },
+      },
+    ],
   }
 
   return (
     <>
       <SEO
         title="Crispy Delight & Crunchy Namkeen"
-        description="Welcome to ZAY'LO Snacks. Discover our premium range of crispy cup-shaped snacks, Penne-shaped pasta snacks, crinkle-cut rectangular chips, and other delicious Indian namkeen."
+        description={`Welcome to ${siteName}. Discover our premium range of crispy snacks and delicious Indian namkeen.`}
         path="/"
         structuredData={homeSchema}
       />
-      <Hero />
-      <FeaturedCategories />
-      <TopProducts />
-      
-      <div className="section-container section-padding">
-        <PromoBanner 
-          banner={promoBanners.find(b => b.id === 'festival')} 
-          productImage="/images/festival-snacks.png" 
-        />
-      </div>
+      {isLoading ? (
+        <Skeleton className="h-[560px] w-full !rounded-none sm:h-[520px] md:h-[440px] lg:h-[520px] xl:h-[560px]" />
+      ) : isError ? (
+        <div className="section-container py-16">
+          <ErrorState title="We couldn't load the store right now" error={error} onRetry={refetch} />
+        </div>
+      ) : (
+        <HeroCarousel home={home} />
+      )}
+      <FeaturedCategories categories={home.categories} />
+      <ProductSection id="featured" title="Featured Snacks" products={home.featuredProducts} seeAllHref="/products?featured=true" />
+      <ProductSection title="Popular Products" products={home.popularProducts} tone={home.featuredProducts?.length ? 'cream' : 'surface'} />
+      <ProductSection id="new-arrivals" title="New Arrivals" products={home.newArrivals} seeAllHref="/products?sort=newest" />
+      {/* Best sellers only exist when there are real (non-cancelled) orders */}
+      <ProductSection id="best-sellers" title="Best Sellers" products={home.bestSellers} tone="cream" />
 
-      <BundlePacks />
-      <CustomerReviews />
-      
-      <div className="section-container section-padding pb-0">
-        <PromoBanner 
-          banner={promoBanners.find(b => b.id === 'dealer')} 
-          variant="dark"
-          bgImage="/images/dealer-bg.png"
-        />
-      </div>
+      {middleBanner && <PromoBanner banner={middleBanner} products={bannerProducts} className="py-6 md:py-8" />}
+
+      <BundlePacks bundles={home.bundles} />
+      <CustomerReviews testimonials={home.testimonials} />
+
+      {bottomBanner && <PromoBanner banner={bottomBanner} products={bannerProducts} className="pt-6 md:pt-8" />}
 
       <TrustedBy />
     </>

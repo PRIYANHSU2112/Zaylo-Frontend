@@ -5,7 +5,7 @@ import { useTheme } from '@/context/ThemeContext'
 import { cn } from '@/utils/cn'
 
 const themes = [
-  { id: 'emerald', name: 'Emerald', color: '#1F9355' },
+  { id: 'emerald', name: 'Lacy Red', color: '#d71920' },
   { id: 'blue', name: 'Ocean', color: '#2563eb' },
   { id: 'purple', name: 'Amethyst', color: '#9333ea' },
   { id: 'orange', name: 'Sunset', color: '#f97316' },

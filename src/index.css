@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-display: 'Fredoka', 'Poppins', system-ui, sans-serif;
   --font-body: 'Manrope', system-ui, sans-serif;
   --font-meta: 'Inter', system-ui, sans-serif;
 
@@ -25,6 +25,7 @@
   --color-brand-red-soft: #fde8e9;
   --color-brand-yellow: #ffd400;
   --color-brand-orange: #ff7a00;
+  --color-brand-dark: #0b0b0f;
   --color-brand-gold: #e7b327;
 
   /* Shadows */
@@ -77,12 +78,21 @@
   }
 
   html {
-    @apply scroll-smooth antialiased overflow-x-hidden;
+    @apply scroll-smooth antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /* Kill the rubber-band / overscroll bounce at the top and bottom of the page */
+  html,
   body {
-    @apply m-0 min-h-svh bg-background font-body text-body overflow-x-hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply m-0 min-h-svh bg-background font-body text-body;
+    /* clip (not hidden) so body never becomes a second scroll container — avoids
+       the "magnet" bounce at the top/bottom of the page and keeps sticky header working */
+    overflow-x: clip;
   }
 
   body.scroll-locked {
@@ -120,11 +130,11 @@
   }
 
   .section-padding {
-    @apply py-20 md:py-24 lg:py-28;
+    @apply py-10 md:py-12 lg:py-14;
   }
 
   .section-padding-sm {
-    @apply py-14 md:py-16 lg:py-20;
+    @apply py-8 md:py-10;
   }
 
   .glass-card {
@@ -132,7 +142,7 @@
   }
 
   .bento-card {
-    @apply rounded-[1.75rem] border border-border-subtle/80 bg-surface shadow-card transition-all duration-500 ease-out hover:-translate-y-1 hover:border-brand-primary/10 hover:shadow-hover;
+    @apply rounded-[1.75rem] border border-border-subtle/80 bg-surface shadow-card transition-[translate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-brand-primary/10 hover:shadow-hover;
   }
 
   .product-stage {
@@ -153,7 +163,7 @@
   }
 
   .nav-link {
-    @apply relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors duration-200 lg:text-sm;
+    @apply relative rounded-full px-3.5 py-2 text-[15px] font-normal transition-colors duration-200 lg:text-base xl:text-[17px];
   }
 
   .nav-link-active::after {
@@ -162,7 +172,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-semibold text-white shadow-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-primary-dark hover:shadow-[0_12px_32px_-4px_rgba(46,181,108,0.5)] active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-semibold text-white shadow-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-primary-dark hover:shadow-[0_12px_32px_-4px_rgba(215,25,32,0.5)] active:scale-[0.98];
   }
 
   .btn-secondary {
@@ -191,19 +201,19 @@
 
   .hero-mesh {
     background:
-      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(46, 181, 108, 0.07) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 50% at 90% 10%, rgba(46, 181, 108, 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse 50% 40% at 70% 90%, rgba(46, 181, 108, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(215, 25, 32, 0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 90% 10%, rgba(215, 25, 32, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 40% at 70% 90%, rgba(215, 25, 32, 0.06) 0%, transparent 50%),
       linear-gradient(180deg, var(--theme-surface-cream) 0%, var(--theme-bg) 45%, var(--theme-surface) 100%);
   }
 
   /* eGrocery specific styles */
   .hero-search-bar {
-    @apply flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-5 py-2.5 shadow-card transition-all duration-300 focus-within:border-brand-primary/40 focus-within:shadow-[0_4px_24px_-4px_rgba(46,181,108,0.15)];
+    @apply flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-5 py-2.5 shadow-card transition-all duration-300 focus-within:border-brand-primary/40 focus-within:shadow-[0_4px_24px_-4px_rgba(215,25,32,0.15)];
   }
 
   .category-icon-card {
-    @apply flex flex-col items-center gap-3 rounded-2xl border border-transparent bg-surface px-6 py-5 shadow-card transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
+    @apply flex flex-col items-center gap-3 rounded-2xl border border-transparent bg-surface px-6 py-5 shadow-card transition-[translate,box-shadow,border-color,background-color] duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
   }
 
   .category-icon-card.active {
@@ -211,7 +221,7 @@
   }
 
   .grocery-product-card {
-    @apply relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle/80 bg-surface shadow-card transition-all duration-500 hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
+    @apply relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle/80 bg-surface shadow-card transition-[translate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
   }
 
   .qty-btn {
@@ -219,7 +229,7 @@
   }
 
   .bundle-card {
-    @apply relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle/80 bg-surface p-4 shadow-card transition-all duration-500 hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
+    @apply relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle/80 bg-surface p-4 shadow-card transition-[translate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-brand-primary/20 hover:shadow-hover;
   }
 
   .partner-text {
@@ -250,16 +260,16 @@
 
 @layer base {
   :root {
-    /* Emerald (Default) */
-    --theme-primary: #1F9355;
-    --theme-primary-light: #e8f5ee;
-    --theme-primary-dark: #166D3B;
-    --theme-primary-rgb: rgba(46, 181, 108, 0.35);
+    /* Lacy Red (Default) — matches brand logo */
+    --theme-primary: #d71920;
+    --theme-primary-light: #fdecec;
+    --theme-primary-dark: #a8121a;
+    --theme-primary-rgb: rgba(215, 25, 32, 0.35);
 
     /* Light Mode */
     --theme-bg: #fafafa;
     --theme-surface: #ffffff;
-    --theme-surface-cream: #f0faf4;
+    --theme-surface-cream: #fff8e1;
     --theme-text-main: #1a1e2c;
     --theme-text-body: #475569; /* slate-600 */
     --theme-text-muted: #64748b; /* slate-500 */
@@ -270,7 +280,7 @@
   .dark {
     --theme-bg: #0f1117;
     --theme-surface: #1a1d27;
-    --theme-surface-cream: #141f1a;
+    --theme-surface-cream: #1f1714;
     --theme-text-main: #f8fafc;
     --theme-text-body: #cbd5e1;
     --theme-text-muted: #94a3b8;
@@ -300,4 +310,43 @@
     --theme-primary-dark: #c2410c;
     --theme-primary-rgb: rgba(249, 115, 22, 0.35);
   }
+}
+
+/* Banner / image loading skeleton */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@layer components {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      100deg,
+      var(--theme-border-subtle) 20%,
+      color-mix(in srgb, var(--theme-surface) 85%, transparent) 40%,
+      var(--theme-border-subtle) 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; }
+}
+
+/* Brand headings — Fredoka, friendly & chunky but not heavy.
+   Unlayered on purpose: wins over utility classes like font-extrabold / tracking-tight
+   that older components put on headings, so every page gets the same look. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0;
 }

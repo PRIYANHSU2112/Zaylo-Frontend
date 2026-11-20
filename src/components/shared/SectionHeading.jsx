@@ -14,7 +14,7 @@ export default function SectionHeading({
   return (
     <Reveal
       className={cn(
-        'mb-12 md:mb-16',
+        'mb-6 md:mb-8',
         align === 'center' && 'text-center',
         align === 'left' && 'text-left',
         className,
@@ -42,7 +42,7 @@ export default function SectionHeading({
       >
         <h2
           className={cn(
-            'text-3xl font-extrabold leading-tight tracking-tight md:text-4xl',
+            'font-display text-[2rem] font-semibold leading-[1.1] md:text-[2.75rem]',
             dark ? 'text-white' : 'text-main',
           )}
         >

@@ -1,285 +1,276 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, ChevronRight, CreditCard, Banknote, Truck } from 'lucide-react'
-import { useStore } from '@/context/StoreContext'
-import Reveal from '@/components/shared/Reveal'
-import PageHero from '@/components/shared/PageHero'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { MapPin, Plus, Tag, CheckCircle2, Wallet, CreditCard, X } from 'lucide-react'
 import Button from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Input'
-import { cn } from '@/utils/cn'
 import SEO from '@/components/shared/SEO'
+import PageHero from '@/components/shared/PageHero'
+import AddressForm, { addressLine } from '@/components/shared/AddressForm'
+import { ErrorState, Skeleton, Spinner, formatINR } from '@/components/shared/States'
+import { useStore } from '@/context/StoreContext'
+import { useToast } from '@/context/ToastContext'
+import { useAddresses, useAddressMutations, useCheckoutQuote } from '@/hooks/useAccount'
+import { api } from '@/lib/api'
+import { cn } from '@/utils/cn'
+
+const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
 export default function Checkout() {
-  const { cart, cartTotal, user, clearCart } = useStore()
   const navigate = useNavigate()
-  
-  const [step, setStep] = useState(1)
-  const [selectedAddress, setSelectedAddress] = useState(user.addresses[0]?.id || '')
-  const [paymentMethod, setPaymentMethod] = useState('card')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const toast = useToast()
+  const qc = useQueryClient()
+  const { cart, cartLines, clearCart } = useStore()
+  const addresses = useAddresses()
+  const { create } = useAddressMutations()
 
-  const deliveryFee = cartTotal > 500 ? 0 : 50
-  const finalTotal = cartTotal + (cart.length > 0 ? deliveryFee : 0)
+  const [addressId, setAddressId] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [couponInput, setCouponInput] = useState('')
+  const [coupon, setCoupon] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('COD')
+  const [placing, setPlacing] = useState(false)
+  const [placeError, setPlaceError] = useState('')
+  // One key per checkout attempt → retries/double-clicks never create duplicate orders.
+  const idemKey = useRef(newKey())
 
-  if (cart.length === 0 && step !== 3) {
-    navigate('/cart')
-    return null
+  const quote = useCheckoutQuote(cartLines, { couponCode: coupon, paymentMethod })
+  const q = quote.data
+
+  const list = useMemo(() => addresses.data || [], [addresses.data])
+  useEffect(() => {
+    if (!addressId && list.length) setAddressId((list.find((a) => a.isDefault) || list[0]).id)
+    if (addresses.isSuccess && !list.length) setAdding(true)
+  }, [list, addressId, addresses.isSuccess])
+
+  useEffect(() => {
+    if (q?.couponError && coupon) {
+      toast.error(q.couponError)
+      setCoupon('')
+    }
+  }, [q?.couponError, coupon, toast])
+
+  // Selection changed → new attempt key
+  useEffect(() => {
+    idemKey.current = newKey()
+  }, [cartLines.length, coupon, paymentMethod, addressId])
+
+  if (!cart.length && !placing) return <Navigate to="/cart" replace />
+
+  const codAvailable = q?.paymentMethods?.COD !== false
+  const onlineAvailable = Boolean(q?.paymentMethods?.Razorpay)
+  const blocking = (q?.issues || []).length > 0
+
+  const saveAddress = async (body) => {
+    try {
+      const a = await create.mutateAsync(body)
+      setAddressId(a.id)
+      setAdding(false)
+      toast.success('Address saved')
+    } catch {
+      /* error shown in form */
+    }
   }
 
-  const handlePlaceOrder = () => {
-    setIsProcessing(true)
-    setTimeout(() => {
-      setIsProcessing(false)
+  const applyCoupon = (e) => {
+    e.preventDefault()
+    if (couponInput.trim()) setCoupon(couponInput.trim().toUpperCase())
+  }
+
+  const placeOrder = async () => {
+    setPlaceError('')
+    if (!addressId) return setPlaceError('Please select a delivery address')
+    setPlacing(true)
+    try {
+      const order = await api.post(
+        '/orders',
+        { items: cartLines, addressId, couponCode: coupon || undefined, paymentMethod },
+        { headers: { 'Idempotency-Key': idemKey.current } },
+      )
       clearCart()
-      setStep(3)
-    }, 1500)
-  }
-
-  if (step === 3) {
-    return (
-      <div className="bg-background min-h-screen flex items-center justify-center p-6 text-center pb-32">
-        <SEO
-          title="Order Success"
-          description="Your ZAY'LO Snacks order has been placed successfully."
-          path="/checkout"
-        />
-        <Reveal className="max-w-md w-full bg-surface rounded-[2rem] p-10 shadow-card border border-border-subtle flex flex-col items-center">
-          <div className="h-20 w-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-          </div>
-          <h2 className="text-3xl font-bold text-main mb-3">Order Placed!</h2>
-          <p className="text-muted mb-8">
-            Thank you for shopping with ZAY'LO. Your delicious snacks are on their way and will reach you soon.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <Link to="/profile" className="flex-1">
-              <Button variant="outline" className="w-full">View Order</Button>
-            </Link>
-            <Link to="/products" className="flex-1">
-              <Button className="w-full">Continue Shopping</Button>
-            </Link>
-          </div>
-        </Reveal>
-      </div>
-    )
+      qc.invalidateQueries({ queryKey: ['me', 'orders'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+      toast.success(`Order ${order.orderCode} placed`)
+      navigate(`/orders/${order.id}?placed=1`, { replace: true })
+    } catch (err) {
+      setPlaceError(err.message)
+      quote.refetch()
+      setPlacing(false)
+    }
   }
 
   return (
-    <div className="bg-background min-h-screen pb-20">
-      <SEO
-        title="Checkout"
-        description="Checkout and complete your purchase of ZAY'LO Snacks."
-        path="/checkout"
-      />
-      <div className="border-b border-border-subtle bg-surface/50 sticky top-[5.5rem] md:top-[6.5rem] z-30 backdrop-blur-md">
-        <div className="section-container py-4 flex items-center text-sm font-medium">
-          <button 
-            onClick={() => setStep(1)} 
-            className={cn("transition-colors", step >= 1 ? "text-brand-primary" : "text-muted")}
-          >
-            Delivery
-          </button>
-          <ChevronRight className="h-4 w-4 mx-2 text-muted" />
-          <button 
-            className={cn("transition-colors", step >= 2 ? "text-brand-primary" : "text-muted")}
-          >
-            Payment
-          </button>
-          <ChevronRight className="h-4 w-4 mx-2 text-muted" />
-          <span className={cn("transition-colors", step === 3 ? "text-brand-primary" : "text-muted")}>
-            Confirmation
-          </span>
-        </div>
-      </div>
+    <div className="bg-background">
+      <SEO title="Checkout" path="/checkout" noindex />
+      <PageHero title="Checkout" />
+      <div className="section-container grid gap-10 py-12 lg:grid-cols-[1fr_400px]">
+        <div className="space-y-8">
+          {/* Address */}
+          <section className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-card">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-main"><MapPin className="h-5 w-5 text-brand-primary" /> Delivery address</h2>
+              {!adding && list.length > 0 && (
+                <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary">
+                  <Plus className="h-4 w-4" /> Add new
+                </button>
+              )}
+            </div>
+            {addresses.isLoading ? (
+              <Skeleton className="h-20" />
+            ) : addresses.isError ? (
+              <ErrorState className="!py-6" error={addresses.error} onRetry={addresses.refetch} />
+            ) : adding ? (
+              <AddressForm
+                submitLabel="Save & use this address"
+                pending={create.isPending}
+                serverError={create.error?.message}
+                onSubmit={saveAddress}
+                onCancel={list.length ? () => setAdding(false) : undefined}
+              />
+            ) : (
+              <div className="grid gap-3">
+                {list.map((a) => (
+                  <label
+                    key={a.id}
+                    className={cn(
+                      'flex cursor-pointer gap-3 rounded-2xl border p-4 transition-colors',
+                      addressId === a.id ? 'border-brand-primary bg-brand-primary-light/50' : 'border-border-subtle hover:border-brand-primary/40',
+                    )}
+                  >
+                    <input type="radio" name="address" checked={addressId === a.id} onChange={() => setAddressId(a.id)} className="mt-1 accent-[var(--theme-primary)]" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-main">{a.name || a.type} <span className="ml-1 rounded-full bg-border-subtle/60 px-2 py-0.5 text-[10px] uppercase">{a.type}</span></p>
+                      <p className="mt-1 text-muted">{addressLine(a)}</p>
+                      {a.phone && <p className="text-muted">{a.phone}</p>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
 
-      <div className="section-container mt-10 grid gap-10 lg:grid-cols-3">
-        
-        {/* Left Column: Form Steps */}
-        <div className="lg:col-span-2 space-y-8">
-          {step === 1 && (
-            <Reveal className="space-y-8">
-              <div className="rounded-[1.75rem] bg-surface p-6 sm:p-8 shadow-card border border-border-subtle">
-                <h3 className="text-xl font-bold text-main mb-6 flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-brand-primary" /> Delivery Address
-                </h3>
-                
-                <div className="space-y-4">
-                  {user.addresses.map(addr => (
-                    <label 
-                      key={addr.id} 
-                      className={cn(
-                        "flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                        selectedAddress === addr.id ? "border-brand-primary bg-brand-primary/5" : "border-border-subtle hover:border-brand-primary/50"
+          {/* Payment */}
+          <section className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-card">
+            <h2 className="mb-4 text-lg font-bold text-main">Payment method</h2>
+            <div className="grid gap-3">
+              <PayOption
+                checked={paymentMethod === 'COD'}
+                disabled={!codAvailable}
+                onSelect={() => setPaymentMethod('COD')}
+                icon={Wallet}
+                title="Cash on Delivery"
+                note={codAvailable ? (q?.codFee ? `COD fee ${formatINR(q.codFee)}` : 'Pay when your order arrives') : 'Currently unavailable'}
+              />
+              <PayOption
+                checked={paymentMethod === 'Razorpay'}
+                disabled={!onlineAvailable}
+                onSelect={() => setPaymentMethod('Razorpay')}
+                icon={CreditCard}
+                title="Pay online (UPI / Card)"
+                note={onlineAvailable ? 'Secure payment via Razorpay' : 'Online payments are coming soon'}
+              />
+            </div>
+          </section>
+        </div>
+
+        {/* Summary */}
+        <aside className="h-fit rounded-3xl border border-border-subtle bg-surface p-6 shadow-card lg:sticky lg:top-32">
+          <h2 className="text-lg font-bold text-main">Order summary</h2>
+          {quote.isError ? (
+            <ErrorState className="mt-4 !py-6" title="Couldn't price your order" error={quote.error} onRetry={quote.refetch} />
+          ) : !q ? (
+            <div className="mt-4 space-y-3"><Skeleton className="h-12" /><Skeleton className="h-5" /><Skeleton className="h-7" /></div>
+          ) : (
+            <>
+              <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
+                {q.items.map((l) => (
+                  <li key={l.id} className="flex items-center gap-3 text-sm">
+                    <img src={l.image} alt="" className="h-12 w-12 rounded-lg bg-surface-cream object-contain p-1" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{l.name} × {l.quantity}</span>
+                      {l.kind === 'bundle' && l.components?.length > 0 && (
+                        <span className="block truncate text-xs text-muted">Pack: {l.components.map((c) => c.name).join(' + ')}</span>
                       )}
-                    >
-                      <input 
-                        type="radio" 
-                        name="address" 
-                        value={addr.id}
-                        checked={selectedAddress === addr.id}
-                        onChange={() => setSelectedAddress(addr.id)}
-                        className="mt-1 h-4 w-4 text-brand-primary accent-brand-primary"
-                      />
-                      <div>
-                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-surface-cream text-brand-primary mb-1">
-                          {addr.type}
-                        </span>
-                        <p className="text-sm font-medium text-main">{user.name} • {user.phone}</p>
-                        <p className="text-sm text-muted mt-1">{addr.address}</p>
-                      </div>
-                    </label>
-                  ))}
+                    </span>
+                    <span className="font-semibold">{formatINR(l.lineTotal)}</span>
+                  </li>
+                ))}
+              </ul>
+              {q.issues?.length > 0 && (
+                <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-700">
+                  {q.issues.map((i) => <p key={i.productId}>{i.message}</p>)}
+                  <Link to="/cart" className="mt-1 inline-block font-semibold underline">Update cart</Link>
                 </div>
+              )}
 
-                <div className="mt-8 border-t border-border-subtle pt-8">
-                  <h4 className="text-sm font-bold text-main mb-4">Add New Address</h4>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Input label="Full Name" placeholder={user.name} />
-                    <Input label="Phone Number" placeholder={user.phone} />
-                    <div className="sm:col-span-2">
-                      <Input label="Address Line 1" placeholder="Flat, House no., Building, Company" />
-                    </div>
-                    <Input label="City" placeholder="e.g. New Delhi" />
-                    <Input label="PIN Code" placeholder="e.g. 110001" />
+              <form onSubmit={applyCoupon} className="mt-5 flex gap-2">
+                {coupon ? (
+                  <div className="flex flex-1 items-center justify-between rounded-xl bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
+                    <span className="flex items-center gap-1.5 font-semibold"><CheckCircle2 className="h-4 w-4" /> {coupon} applied</span>
+                    <button type="button" onClick={() => { setCoupon(''); setCouponInput('') }} aria-label="Remove coupon"><X className="h-4 w-4" /></button>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                      <input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder="Coupon code" aria-label="Coupon code" className="input-field !py-2.5 !pl-9 uppercase" />
+                    </div>
+                    <Button type="submit" variant="secondary" className="!px-4 !py-2.5" disabled={!couponInput.trim() || quote.isFetching}>Apply</Button>
+                  </>
+                )}
+              </form>
 
-                <Button className="w-full mt-8" onClick={() => setStep(2)}>
-                  Continue to Payment
-                </Button>
-              </div>
-            </Reveal>
+              <dl className="mt-5 space-y-2.5 text-sm">
+                <Row label="Subtotal" value={formatINR(q.subtotal)} />
+                {q.discount > 0 && <Row label="Discount" value={`−${formatINR(q.discount)}`} className="text-emerald-700" />}
+                <Row label="Delivery" value={q.shippingFee ? formatINR(q.shippingFee) : 'Free'} />
+                {q.codFee > 0 && <Row label="COD fee" value={formatINR(q.codFee)} />}
+                {q.tax > 0 && <Row label="Tax" value={formatINR(q.tax)} />}
+                <div className="flex justify-between border-t border-border-subtle pt-3 text-base">
+                  <dt className="font-bold">Total</dt><dd className="font-extrabold">{formatINR(q.amount)}</dd>
+                </div>
+              </dl>
+            </>
           )}
 
-          {step === 2 && (
-            <Reveal className="space-y-8">
-              <div className="rounded-[1.75rem] bg-surface p-6 sm:p-8 shadow-card border border-border-subtle">
-                <h3 className="text-xl font-bold text-main mb-6 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-brand-primary" /> Payment Method
-                </h3>
-                
-                <div className="space-y-4">
-                  <label 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                      paymentMethod === 'card' ? "border-brand-primary bg-brand-primary/5" : "border-border-subtle hover:border-brand-primary/50"
-                    )}
-                  >
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={() => setPaymentMethod('card')}
-                      className="h-4 w-4 text-brand-primary accent-brand-primary"
-                    />
-                    <CreditCard className="h-5 w-5 text-main" />
-                    <span className="font-medium text-main">Credit / Debit Card</span>
-                  </label>
-
-                  {paymentMethod === 'card' && (
-                    <div className="pl-12 pr-4 pb-4 grid gap-4 sm:grid-cols-2">
-                      <div className="sm:col-span-2">
-                        <Input label="Card Number" placeholder="0000 0000 0000 0000" />
-                      </div>
-                      <Input label="Expiry (MM/YY)" placeholder="MM/YY" />
-                      <Input label="CVV" type="password" placeholder="123" />
-                    </div>
-                  )}
-
-                  <label 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                      paymentMethod === 'upi' ? "border-brand-primary bg-brand-primary/5" : "border-border-subtle hover:border-brand-primary/50"
-                    )}
-                  >
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="upi"
-                      checked={paymentMethod === 'upi'}
-                      onChange={() => setPaymentMethod('upi')}
-                      className="h-4 w-4 text-brand-primary accent-brand-primary"
-                    />
-                    <div className="h-5 w-5 font-bold text-main">UPI</div>
-                    <span className="font-medium text-main">UPI ID / QR</span>
-                  </label>
-
-                  <label 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                      paymentMethod === 'cod' ? "border-brand-primary bg-brand-primary/5" : "border-border-subtle hover:border-brand-primary/50"
-                    )}
-                  >
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="cod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="h-4 w-4 text-brand-primary accent-brand-primary"
-                    />
-                    <Banknote className="h-5 w-5 text-main" />
-                    <span className="font-medium text-main">Cash on Delivery</span>
-                  </label>
-                </div>
-
-                <div className="mt-8 flex gap-4">
-                  <Button variant="outline" onClick={() => setStep(1)} className="w-1/3">
-                    Back
-                  </Button>
-                  <Button className="w-2/3" onClick={handlePlaceOrder} disabled={isProcessing}>
-                    {isProcessing ? 'Processing...' : `Pay ₹${finalTotal}`}
-                  </Button>
-                </div>
-              </div>
-            </Reveal>
-          )}
-        </div>
-
-        {/* Right Column: Order Summary */}
-        <Reveal delay={0.2} className="lg:sticky lg:top-[11rem] h-fit z-20">
-          <div className="rounded-[1.75rem] bg-surface p-6 shadow-card border border-border-subtle">
-            <h3 className="font-bold text-main mb-4">Order Details</h3>
-            
-            <div className="space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-2">
-              {cart.map(item => (
-                <div key={item.id} className="flex gap-3 text-sm">
-                  <div className="h-12 w-12 rounded-lg bg-surface-cream p-1 flex-shrink-0 flex items-center justify-center">
-                    <img src={item.image} alt={item.name} className="h-full w-full object-contain" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-main line-clamp-1">{item.name}</p>
-                    <p className="text-xs text-muted">Qty: {item.quantity}</p>
-                  </div>
-                  <div className="font-bold text-main">₹{item.price * item.quantity}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-3 text-sm pt-4 border-t border-border-subtle">
-              <div className="flex justify-between text-muted">
-                <span>Subtotal</span>
-                <span className="font-semibold text-main">₹{cartTotal}</span>
-              </div>
-              <div className="flex justify-between text-muted">
-                <span>Delivery</span>
-                <span className="font-semibold text-main">
-                  {deliveryFee === 0 ? <span className="text-brand-primary">Free</span> : `₹${deliveryFee}`}
-                </span>
-              </div>
-              
-              <div className="my-2 border-t border-border-subtle" />
-              
-              <div className="flex justify-between text-lg font-extrabold text-main">
-                <span>Total</span>
-                <span>₹{finalTotal}</span>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-
+          {placeError && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{placeError}</p>}
+          <Button
+            className="mt-6 w-full"
+            onClick={placeOrder}
+            disabled={placing || !q || blocking || !addressId || adding || quote.isFetching || (paymentMethod === 'COD' ? !codAvailable : !onlineAvailable)}
+          >
+            {placing && <Spinner />} {paymentMethod === 'COD' ? 'Place order (Cash on Delivery)' : 'Continue to payment'}
+          </Button>
+          <p className="mt-3 text-center text-xs text-muted">Prices and stock are confirmed when you place the order.</p>
+        </aside>
       </div>
     </div>
+  )
+}
+
+function Row({ label, value, className }) {
+  return (
+    <div className={cn('flex justify-between', className)}>
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-semibold">{value}</dd>
+    </div>
+  )
+}
+
+function PayOption({ checked, disabled, onSelect, icon: Icon, title, note }) {
+  return (
+    <label
+      className={cn(
+        'flex items-center gap-3 rounded-2xl border p-4 transition-colors',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        checked && !disabled ? 'border-brand-primary bg-brand-primary-light/50' : 'border-border-subtle',
+      )}
+    >
+      <input type="radio" name="payment" checked={checked} disabled={disabled} onChange={onSelect} className="accent-[var(--theme-primary)]" />
+      <Icon className="h-5 w-5 text-brand-primary" />
+      <div className="text-sm">
+        <p className="font-semibold text-main">{title}</p>
+        <p className="text-muted">{note}</p>
+      </div>
+    </label>
   )
 }

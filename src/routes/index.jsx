@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
+import RequireAuth from '@/components/shared/RequireAuth'
 
 const Home = lazy(() => import('@/pages/Home'))
 const Products = lazy(() => import('@/pages/Products'))
@@ -15,6 +16,12 @@ const Profile = lazy(() => import('@/pages/Profile'))
 const BulkOrder = lazy(() => import('@/pages/BulkOrder'))
 const Blog = lazy(() => import('@/pages/Blog'))
 const Gallery = lazy(() => import('@/pages/Gallery'))
+const Login = lazy(() => import('@/pages/Login'))
+const Register = lazy(() => import('@/pages/Register'))
+const OrderDetail = lazy(() => import('@/pages/OrderDetail'))
+
+const guard = (el) => <RequireAuth>{el}</RequireAuth>
+
 export const routes = [
   {
     element: <MainLayout />,
@@ -28,8 +35,11 @@ export const routes = [
       { path: '/coming-soon', element: <ComingSoon /> },
       { path: '/cart', element: <Cart /> },
       { path: '/wishlist', element: <Wishlist /> },
-      { path: '/checkout', element: <Checkout /> },
-      { path: '/profile', element: <Profile /> },
+      { path: '/checkout', element: guard(<Checkout />) },
+      { path: '/profile', element: guard(<Profile />) },
+      { path: '/orders/:id', element: guard(<OrderDetail />) },
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <Register /> },
       { path: '/bulk-order', element: <BulkOrder /> },
       { path: '/blog', element: <Blog /> },
       { path: '/gallery', element: <Gallery /> },

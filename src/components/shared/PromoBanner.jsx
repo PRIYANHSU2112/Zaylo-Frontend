@@ -1,70 +1,114 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import Badge from '@/components/ui/Badge'
 import Reveal from '@/components/shared/Reveal'
+import BannerImage from '@/components/shared/BannerImage'
 import { cn } from '@/utils/cn'
 
-export default function PromoBanner({ banner, productImage, bgImage, variant = 'default', className }) {
-  const isDark = variant === 'dark'
+const isExternal = (url = '') => /^https?:\/\//i.test(url)
+function CtaLink({ to = '/products', className, children }) {
+  return isExternal(to) ? (
+    <a href={to} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>
+  ) : (
+    <Link to={to} className={className}>{children}</Link>
+  )
+}
+
+/**
+ * Admin-managed banner (any placement).
+ * - Image-only banner (no heading): the uploaded creative fills the banner; separate
+ *   mobile artwork is used below 768px when provided.
+ * - Designed banner: Zaylo brand colours + heading/subtitle/CTA, with the uploaded side
+ *   image, or a composition of real product photos when no image was uploaded.
+ */
+export default function PromoBanner({ banner, products = [], className }) {
+  if (!banner) return null
+  const dark = banner.variant === 'dark'
+  const imageOnly = !banner.title && !banner.subtitle && banner.imageUrl
+
+  if (imageOnly) {
+    return (
+      <Reveal className={cn('section-container', className)}>
+        <CtaLink
+          to={banner.link}
+          className="relative block aspect-[4/5] overflow-hidden rounded-[1.5rem] shadow-card sm:aspect-[16/7] md:rounded-[2rem] lg:aspect-[16/6]"
+        >
+          <BannerImage src={banner.imageUrl} mobileSrc={banner.mobileImageUrl} alt={banner.badge || 'Offer'} />
+        </CtaLink>
+      </Reveal>
+    )
+  }
+
+  const productShots = banner.imageUrl ? [] : products.filter((p) => p.image).slice(0, 3)
 
   return (
     <Reveal className={cn('section-container', className)}>
       <div
         className={cn(
-          'relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem]',
-          !bgImage && (isDark
-            ? 'bg-surface-dark'
-            : `bg-gradient-to-br ${banner.gradient}`),
+          'relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem]',
+          dark ? 'bg-brand-dark' : 'bg-gradient-to-br from-brand-red via-[#e8341f] to-brand-orange',
         )}
       >
-        {bgImage && (
+        {banner.bgImageUrl && (
           <>
-            <div 
-              className="absolute inset-0 bg-cover bg-center" 
-              style={{ backgroundImage: `url(${bgImage})` }} 
-            />
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            <BannerImage src={banner.bgImageUrl} mobileSrc={banner.mobileImageUrl} alt="" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/0" />
           </>
         )}
-        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-surface/10 blur-3xl" />
-        <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-black/5 blur-2xl" />
+        {!banner.bgImageUrl && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-60"
+            style={{
+              background:
+                'repeating-conic-gradient(from 0deg at 80% 50%, rgba(255,212,0,0.16) 0deg 7deg, transparent 7deg 18deg)',
+              maskImage: 'radial-gradient(circle at 80% 50%, #000 0%, transparent 70%)',
+              WebkitMaskImage: 'radial-gradient(circle at 80% 50%, #000 0%, transparent 70%)',
+            }}
+          />
+        )}
 
-        <div className="relative z-10 grid items-center gap-8 p-8 md:grid-cols-2 md:p-12 lg:p-14">
-          <div className={cn('max-w-lg', productImage && 'md:pr-4')}>
-            <Badge
-              variant={isDark ? 'gold' : 'dark'}
-              className={cn(
-                'mb-5',
-                !isDark && 'bg-surface/20 text-white backdrop-blur-sm',
-              )}
-            >
-              {banner.badge}
-            </Badge>
-            <h3 className="text-2xl font-extrabold leading-tight text-white md:text-3xl lg:text-4xl">
-              {banner.title}
-            </h3>
-            <p className="mt-4 text-sm leading-relaxed text-white/75 md:text-base">
-              {banner.subtitle}
-            </p>
-            <Link
-              to={banner.link}
-              className="mt-7 inline-flex items-center gap-2 rounded-full bg-surface px-6 py-3 text-sm font-bold text-main shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
-            >
-              {banner.cta}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+        <div className="relative z-10 grid items-center md:grid-cols-2">
+          <div className="max-w-lg p-7 md:p-12">
+            {banner.badge && (
+              <span className="mb-4 inline-flex rounded-full bg-brand-yellow px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-dark">
+                {banner.badge}
+              </span>
+            )}
+            {banner.title && <h3 className="text-3xl leading-tight text-white md:text-4xl lg:text-[2.75rem]">{banner.title}</h3>}
+            {banner.subtitle && <p className="mt-3 text-sm leading-relaxed text-white/85 md:text-base">{banner.subtitle}</p>}
+            {banner.cta && (
+              <CtaLink
+                to={banner.link}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand-yellow px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-brand-dark shadow-lg transition-[transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-white"
+              >
+                {banner.cta}
+                <ArrowRight className="h-4 w-4" />
+              </CtaLink>
+            )}
           </div>
 
-          {productImage && (
-            <div className="relative flex justify-center md:justify-end">
-              <div className="absolute inset-0 rounded-full bg-surface/10 blur-2xl" />
-              <img
-                src={productImage}
-                alt=""
-                className="relative z-10 h-48 w-auto object-contain drop-shadow-2xl md:h-64 lg:h-72"
-              />
+          {banner.imageUrl ? (
+            <div className="relative min-h-[240px] overflow-hidden md:min-h-[340px]">
+              <BannerImage src={banner.imageUrl} mobileSrc={banner.mobileImageUrl} alt={banner.title} imgClassName="object-contain p-4 md:p-8" />
             </div>
-          )}
+          ) : productShots.length > 0 ? (
+            <div className="flex items-end justify-center gap-2 px-6 pb-8 md:justify-end md:pb-10 md:pr-12">
+              {productShots.map((p, i) => (
+                <img
+                  key={p.id}
+                  src={p.image}
+                  alt={p.name}
+                  loading="lazy"
+                  className={cn(
+                    'w-[30%] max-w-[150px] rounded-2xl bg-white p-1.5 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)]',
+                    i === 0 && '-rotate-6',
+                    i === 1 && 'z-10 scale-110',
+                    i === 2 && 'rotate-6',
+                  )}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </Reveal>

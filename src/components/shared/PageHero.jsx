@@ -14,7 +14,7 @@ export default function PageHero({ title, subtitle, breadcrumb, children, classN
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-primary/[0.04] blur-3xl" />
         <div className="absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-brand-yellow/[0.08] blur-3xl" />
       </div>
-      <div className="section-container relative py-12 md:py-16 lg:py-20">
+      <div className="section-container relative py-8 md:py-10 lg:py-12">
         <Reveal>
           {breadcrumb && (
             <p className="text-sm text-muted">{breadcrumb}</p>

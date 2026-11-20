@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { Maximize2 } from 'lucide-react'
-import { galleryImages } from '@/data/gallery'
+import { useGallery } from '@/hooks/useCatalog'
+import Modal from '@/components/ui/Modal'
+import { EmptyState, ErrorState, Skeleton } from '@/components/shared/States'
 import PageHero from '@/components/shared/PageHero'
 import Reveal from '@/components/shared/Reveal'
 import { cn } from '@/utils/cn'
 import SEO from '@/components/shared/SEO'
 
 export default function Gallery() {
+  const galleryQuery = useGallery()
+  const galleryImages = galleryQuery.data?.data || []
+  const [lightbox, setLightbox] = useState(null)
   const gallerySchema = {
     "@context": "https://schema.org",
     "@type": "ImageGallery",
@@ -37,6 +42,11 @@ export default function Gallery() {
       />
 
       <div className="section-container mt-8">
+        {galleryQuery.isLoading && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-64 rounded-[1.5rem]" />)}</div>
+        )}
+        {galleryQuery.isError && <ErrorState title="Couldn't load the gallery" error={galleryQuery.error} onRetry={galleryQuery.refetch} />}
+        {galleryQuery.isSuccess && !galleryImages.length && <EmptyState title="No photos yet" />}
         {/* Category Filters */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
           {categories.map((category) => (
@@ -59,7 +69,7 @@ export default function Gallery() {
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
           {filteredImages.map((image, i) => (
             <Reveal key={image.id} delay={i * 0.05} className="break-inside-avoid">
-              <div className="group relative overflow-hidden rounded-[1.5rem] bg-surface shadow-card border border-border-subtle cursor-pointer">
+              <button type="button" onClick={() => setLightbox(image)} aria-label={`View ${image.title}`} className="group relative block w-full overflow-hidden rounded-[1.5rem] bg-surface text-left shadow-card border border-border-subtle cursor-zoom-in">
                 <img 
                   src={image.url} 
                   alt={image.title}
@@ -82,17 +92,20 @@ export default function Gallery() {
                     <Maximize2 className="h-4 w-4" />
                   </div>
                 </div>
-              </div>
+              </button>
             </Reveal>
           ))}
         </div>
 
-        {filteredImages.length === 0 && (
+        {galleryQuery.isSuccess && galleryImages.length > 0 && filteredImages.length === 0 && (
           <div className="text-center py-20 text-muted">
             No images found in this category.
           </div>
         )}
       </div>
+      <Modal open={!!lightbox} onClose={() => setLightbox(null)} title={lightbox?.title}>
+        {lightbox && <img src={lightbox.url} alt={lightbox.title} className="max-h-[75vh] w-full rounded-xl object-contain" />}
+      </Modal>
     </div>
   )
 }

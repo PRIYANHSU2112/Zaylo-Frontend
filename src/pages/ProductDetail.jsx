@@ -1,256 +1,306 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { Star, Minus, Plus, ShoppingBag, Heart, RotateCcw } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Star, Minus, Plus, ShoppingBag, Heart, Truck, ShieldCheck } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import ProductCard from '@/components/shared/ProductCard'
 import SectionHeading from '@/components/shared/SectionHeading'
 import { Breadcrumb } from '@/components/shared/PageHero'
 import { RevealStagger } from '@/components/shared/Reveal'
+import { ErrorState, Skeleton, formatINR } from '@/components/shared/States'
 import { useStore } from '@/context/StoreContext'
-import { getProductBySlug, getRelatedProducts } from '@/data/products'
+import { useToast } from '@/context/ToastContext'
+import { useProduct } from '@/hooks/useCatalog'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { cn } from '@/utils/cn'
 import SEO from '@/components/shared/SEO'
 
-const tabs = ['Description', 'Nutrition', 'Ingredients', 'Storage']
-
 export default function ProductDetail() {
   const { slug } = useParams()
+  const navigate = useNavigate()
+  const toast = useToast()
   const { addToCart, toggleWishlist, isInWishlist } = useStore()
-  const product = getProductBySlug(slug)
+  const { settings } = useSiteSettings()
+  const { data, isLoading, isError, error, refetch } = useProduct(slug)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('Description')
+  const [activeImage, setActiveImage] = useState(0)
 
-  if (!product) {
+  if (isLoading) {
     return (
-      <div className="section-container flex min-h-[50vh] flex-col items-center justify-center py-20">
-        <SEO
-          title="Product Not Found"
-          description="The requested product could not be found. View our complete catalog of crispy ZAY'LO snacks."
-          path={`/products/${slug}`}
-        />
-        <h1 className="text-2xl font-bold text-main">Product Not Found</h1>
-        <Link to="/products" className="mt-4 text-brand-primary hover:underline">Back to Products</Link>
+      <div className="section-container grid gap-10 py-12 lg:grid-cols-2">
+        <Skeleton className="aspect-square w-full rounded-[2rem]" />
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-12 w-1/2" />
+        </div>
       </div>
     )
   }
 
-  const related = getRelatedProducts(slug, 4)
+  if (isError) {
+    const notFound = error?.status === 404
+    return (
+      <div className="section-container py-20">
+        <SEO title={notFound ? 'Product Not Found' : 'Product'} path={`/products/${slug}`} noindex />
+        {notFound ? (
+          <div className="flex flex-col items-center text-center">
+            <h1 className="text-2xl font-bold text-main">Product Not Found</h1>
+            <p className="mt-2 text-muted">This product may have been removed or is no longer available.</p>
+            <Link to="/products" className="mt-4 text-brand-primary hover:underline">Back to Products</Link>
+          </div>
+        ) : (
+          <ErrorState title="Couldn't load this product" error={error} onRetry={refetch} />
+        )}
+      </div>
+    )
+  }
 
-  const productImageAbsolute = product.image 
-    ? (product.image.startsWith('http') ? product.image : `https://zaylosnacks.com${product.image}`)
-    : undefined;
+  const { product, related = [] } = data
+  const gallery = (product.images?.length ? product.images : [product.image]).filter(Boolean)
+  const stock = product.stock ?? 0
+  const outOfStock = stock <= 0
+  const maxQty = Math.max(1, Math.min(stock, settings.commerce?.maxQtyPerItem || 99))
+  const wishlisted = isInWishlist(product.id)
+  const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0
+  const siteUrl = (settings.brand?.siteUrl || '').replace(/\/+$/, '')
+
+  const tabs = [
+    { key: 'Description', show: Boolean(product.description) },
+    { key: 'Nutrition', show: Boolean(product.nutrition?.calories || product.nutrition?.fat) },
+    { key: 'Ingredients', show: product.ingredients?.length > 0 },
+    { key: 'Storage', show: Boolean(product.storage) },
+  ].filter((t) => t.show)
+  const currentTab = tabs.some((t) => t.key === activeTab) ? activeTab : tabs[0]?.key
 
   const productSchema = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": product.name,
-    "image": productImageAbsolute,
-    "description": product.description,
-    "brand": {
-      "@type": "Brand",
-      "name": "ZAY'LO"
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.image || undefined,
+    description: product.description || product.tagline,
+    brand: { '@type': 'Brand', name: settings.general?.siteName || undefined },
+    offers: {
+      '@type': 'Offer',
+      url: siteUrl ? `${siteUrl}/products/${product.slug}` : undefined,
+      priceCurrency: 'INR',
+      price: product.price,
+      availability: outOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
     },
-    "offers": {
-      "@type": "Offer",
-      "url": `https://zaylosnacks.com/products/${product.slug}`,
-      "priceCurrency": "INR",
-      "price": product.price,
-      "itemCondition": "https://schema.org/NewCondition",
-      "availability": "https://schema.org/InStock"
-    }
+    ...(product.reviewCount > 0
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: product.rating, reviewCount: product.reviewCount } }
+      : {}),
+  }
+
+  const add = () => {
+    addToCart(product, quantity)
+    toast.success(`${product.name} × ${quantity} added to cart`)
+  }
+
+  const buyNow = () => {
+    addToCart(product, quantity)
+    navigate('/checkout')
   }
 
   return (
     <div className="bg-background">
       <SEO
-        title={`${product.name} - ${product.tagline}`}
-        description={`${product.description} Flavor: ${product.flavor}. Indulge in our 100% vegetarian crispy puffed snacks, made to perfection.`}
+        title={product.seoTitle || product.name}
+        description={product.seoDescription || product.description || product.tagline}
         path={`/products/${product.slug}`}
-        ogImage={productImageAbsolute}
+        ogType="product"
+        ogImage={product.image}
         structuredData={productSchema}
       />
-      <div className="border-b border-border-subtle bg-surface py-5">
-        <div className="section-container">
-          <Breadcrumb
-            items={[
-              { label: 'Home', href: '/' },
-              { label: 'Products', href: '/products' },
-              { label: product.name },
-            ]}
-          />
-        </div>
-      </div>
 
-      <div className="section-container section-padding !pt-10">
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
+      <div className="section-container py-8">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/products' },
+            { label: product.name },
+          ]}
+        />
+
+        <div className="mt-8 grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
-            <div className="product-stage relative p-8 md:p-10">
-              <span className="price-badge absolute left-6 top-6 z-10">₹{product.mrp}</span>
-              {product.isNew && <Badge variant="new" className="absolute right-6 top-6 z-10">New</Badge>}
-              <div className="absolute right-6 top-16 flex items-center gap-1 rounded-full bg-surface/90 px-3 py-1.5 text-xs font-semibold text-muted shadow-sm backdrop-blur-sm">
-                <RotateCcw className="h-3.5 w-3.5" /> 360° View
-              </div>
+          <div className="product-stage flex aspect-square items-center justify-center p-10">
+            {gallery.length ? (
               <img
-                src={product.image}
-                alt={`ZAY'LO ${product.name} snack pack`}
-                width={500}
-                height={600}
-                className="mx-auto h-[380px] w-full object-contain md:h-[460px]"
+                key={gallery[activeImage]}
+                src={gallery[activeImage]}
+                alt={product.name}
+                className="h-full w-full animate-[fadeIn_0.4s_ease-out] object-contain drop-shadow-2xl"
               />
+            ) : (
+              <span className="text-6xl font-extrabold text-brand-primary/30">{product.name[0]}</span>
+            )}
+            {discount > 0 && (
+              <Badge className="absolute left-5 top-5 bg-brand-primary text-white">{discount}% OFF</Badge>
+            )}
+          </div>
+          {gallery.length > 1 && (
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-1" role="tablist" aria-label="Product images">
+              {gallery.map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === activeImage}
+                  aria-label={`Image ${i + 1}`}
+                  onClick={() => setActiveImage(i)}
+                  className={cn(
+                    'h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-surface p-1 transition-colors',
+                    i === activeImage ? 'border-brand-primary' : 'border-border-subtle hover:border-brand-primary/40',
+                  )}
+                >
+                  <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" />
+                </button>
+              ))}
             </div>
+          )}
           </div>
 
           <div>
-            <span className="flavor-chip">{product.flavor}</span>
-            <div className="mt-3 flex items-center gap-2">
-              {product.isVeg && (
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm border-2 border-brand-primary">
-                  <span className="h-2.5 w-2.5 rounded-full bg-brand-primary" />
-                </span>
-              )}
-              <span className="text-xs font-medium text-brand-primary">100% Vegetarian</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {product.isNew && <Badge className="bg-brand-yellow text-main">New</Badge>}
+              {product.isVeg && <Badge className="bg-emerald-50 text-emerald-700">Pure Veg</Badge>}
+              {product.flavor && <span className="flavor-chip">{product.flavor}</span>}
             </div>
+            <h1 className="mt-4 text-3xl font-extrabold text-main md:text-4xl">{product.name}</h1>
+            {product.tagline && <p className="mt-2 text-lg text-muted">{product.tagline}</p>}
+            {product.sku && <p className="mt-1 text-xs uppercase tracking-wider text-muted">SKU: {product.sku}</p>}
 
-            <h1 className="mt-4 text-3xl font-extrabold text-main md:text-4xl lg:text-5xl">{product.name}</h1>
-            <p className="mt-1 text-sm text-muted">{product.tagline} · {product.flavor}</p>
-
-            <div className="mt-3 flex items-center gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    'h-4 w-4',
-                    i < Math.floor(product.rating) ? 'fill-brand-yellow text-brand-yellow' : 'text-grey-soft',
-                  )}
-                />
-              ))}
-              <span className="text-sm text-muted">{product.rating} ({product.reviewCount} reviews)</span>
-            </div>
-
-            <p className="mt-6 text-3xl font-extrabold text-brand-primary">₹{product.mrp}</p>
-            <p className="text-xs text-muted">MRP incl. of all taxes · {product.weight}</p>
-
-            <div className="mt-6 flex items-center gap-4">
-              <div className="flex items-center rounded-full border border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="rounded-l-full px-4 py-2 flex items-center justify-center transition-colors hover:bg-border-subtle"
-                  aria-label="Decrease quantity"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="px-4 text-sm font-bold">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="rounded-r-full px-4 py-2 flex items-center justify-center transition-colors hover:bg-border-subtle"
-                  aria-label="Increase quantity"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+            {product.reviewCount > 0 && (
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <div className="flex text-brand-gold" aria-label={`Rated ${product.rating} out of 5`}>
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <Star key={i} className={cn('h-4 w-4', i < Math.round(product.rating) && 'fill-current')} />
+                  ))}
+                </div>
+                <span className="font-semibold text-main">{product.rating}</span>
+                <span className="text-muted">({product.reviewCount} ratings)</span>
               </div>
-              <button 
-                type="button" 
-                onClick={() => toggleWishlist(product)}
-                className={cn(
-                  "rounded-full p-2.5 flex items-center justify-center transition-all",
-                  isInWishlist(product.id) ? "bg-brand-primary/10 text-brand-primary" : "bg-border-subtle/50 text-muted hover:bg-brand-primary/10 hover:text-brand-primary"
-                )}
-                aria-label={isInWishlist(product.id) ? "Remove from wishlist" : "Add to wishlist"}
-              >
-                <Heart className={cn("h-5 w-5", isInWishlist(product.id) && "fill-current")} />
-              </button>
+            )}
+
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-4xl font-extrabold text-main">{formatINR(product.price)}</span>
+              {product.mrp > product.price && <span className="text-lg text-muted line-through">{formatINR(product.mrp)}</span>}
+              {product.weight && <span className="text-sm text-muted">/ {product.weight}</span>}
             </div>
+            <p className={cn('mt-2 text-sm font-semibold', outOfStock ? 'text-red-600' : stock <= 10 ? 'text-brand-orange' : 'text-emerald-600')}>
+              {outOfStock ? 'Out of stock' : stock <= 10 ? `Only ${stock} left` : 'In stock'}
+            </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button className="gap-2" onClick={() => addToCart({ ...product, quantity })}>
-                <ShoppingBag className="h-4 w-4" /> Add to Cart
-              </Button>
-              <Button variant="outline" onClick={() => addToCart({ ...product, quantity })}>
-                Buy Now
-              </Button>
-            </div>
-
-            <Link to="/dealer" className="mt-4 inline-block text-sm font-semibold text-brand-primary hover:underline">
-              Dealer Pricing Available →
-            </Link>
-
-            <div className="mt-8 border-t border-border-subtle pt-6">
-              <div className="flex gap-1 border-b border-border-subtle relative">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      'px-4 py-2.5 text-sm font-semibold transition-colors duration-200 relative',
-                      activeTab === tab
-                        ? 'text-brand-primary'
-                        : 'text-muted hover:text-main',
-                    )}
-                  >
-                    {tab}
-                    {activeTab === tab && (
-                      <span className="absolute bottom-[-1px] left-0 w-full h-0.5 bg-brand-primary rounded-t-full transition-all duration-300" />
-                    )}
+            {!outOfStock && (
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <div className="flex items-center rounded-full border border-border-subtle bg-surface p-1">
+                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="qty-btn !rounded-full" aria-label="Decrease quantity">
+                    <Minus className="h-4 w-4" />
                   </button>
-                ))}
+                  <span className="w-10 text-center font-bold text-main" aria-live="polite">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
+                    disabled={quantity >= maxQty}
+                    className="qty-btn !rounded-full disabled:opacity-40"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <Button onClick={add} className="flex-1 sm:flex-none">
+                  <ShoppingBag className="h-4 w-4" /> Add to Cart
+                </Button>
+                <Button variant="outline" onClick={buyNow}>Buy Now</Button>
               </div>
-              <div className="py-4 text-sm leading-relaxed text-muted">
-                {activeTab === 'Description' && <p>{product.description}</p>}
-                {activeTab === 'Nutrition' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {Object.entries(product.nutrition).map(([key, val]) => (
-                      <div key={key} className="rounded-xl bg-border-subtle/50 p-3">
-                        <p className="text-xs capitalize text-muted">{key}</p>
-                        <p className="font-bold text-main">{val}</p>
-                      </div>
-                    ))}
+            )}
+
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product)}
+              className={cn('mt-5 inline-flex items-center gap-2 text-sm font-semibold transition-colors', wishlisted ? 'text-brand-primary' : 'text-muted hover:text-brand-primary')}
+            >
+              <Heart className={cn('h-4 w-4', wishlisted && 'fill-current')} />
+              {wishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
+            </button>
+
+            {settings.commerce && (
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface p-4 text-sm">
+                  <Truck className="h-5 w-5 text-brand-primary" />
+                  {settings.commerce.freeShippingThreshold > 0
+                    ? `Free delivery above ${formatINR(settings.commerce.freeShippingThreshold)}`
+                    : `Delivery ${formatINR(settings.commerce.shippingFee)}`}
+                </div>
+                {settings.commerce.codEnabled && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface p-4 text-sm">
+                    <ShieldCheck className="h-5 w-5 text-brand-primary" /> Cash on Delivery available
                   </div>
                 )}
-                {activeTab === 'Ingredients' && (
-                  <ul className="list-inside list-disc space-y-1">
-                    {product.ingredients.map((ing) => (
-                      <li key={ing}>{ing}</li>
-                    ))}
-                  </ul>
-                )}
-                {activeTab === 'Storage' && <p>{product.storage}</p>}
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        <div className="mt-16">
-          <SectionHeading title="Related Products" align="left" className="!mb-8" />
-          <RevealStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </RevealStagger>
-        </div>
-
-        <div className="mt-16">
-          <SectionHeading title="Frequently Bought Together" align="left" className="!mb-8" />
-          <div className="flex flex-wrap items-center justify-center gap-4 rounded-3xl bg-surface p-6 shadow-card md:p-8">
-            {related.slice(0, 3).map((p, i) => (
-              <div key={p.id} className="flex items-center gap-4">
-                {i > 0 && <span className="text-2xl font-light text-slate-300">+</span>}
-                <div className="text-center">
-                  <img src={p.image} alt={p.name} className="h-24 object-contain" />
-                  <p className="mt-1 text-xs font-semibold">{p.name}</p>
-                  <p className="text-xs text-brand-primary">₹{p.mrp}</p>
+            {tabs.length > 0 && (
+              <div className="mt-10">
+                <div className="flex gap-1 overflow-x-auto border-b border-border-subtle" role="tablist">
+                  {tabs.map(({ key }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={currentTab === key}
+                      onClick={() => setActiveTab(key)}
+                      className={cn(
+                        'whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors',
+                        currentTab === key ? 'border-brand-primary text-brand-primary' : 'border-transparent text-muted hover:text-main',
+                      )}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+                <div className="py-6 text-sm leading-relaxed text-body" role="tabpanel">
+                  {currentTab === 'Description' && <p>{product.description}</p>}
+                  {currentTab === 'Nutrition' && (
+                    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {[
+                        ['Calories', product.nutrition.calories ? `${product.nutrition.calories} kcal` : ''],
+                        ['Fat', product.nutrition.fat],
+                        ['Carbs', product.nutrition.carbs],
+                      ]
+                        .filter(([, v]) => v)
+                        .map(([k, v]) => (
+                          <div key={k} className="rounded-xl bg-surface-cream p-3 text-center">
+                            <dt className="text-xs text-muted">{k}</dt>
+                            <dd className="font-bold text-main">{v}</dd>
+                          </div>
+                        ))}
+                    </dl>
+                  )}
+                  {currentTab === 'Ingredients' && (
+                    <ul className="list-inside list-disc space-y-1">
+                      {product.ingredients.map((i) => <li key={i}>{i}</li>)}
+                    </ul>
+                  )}
+                  {currentTab === 'Storage' && <p>{product.storage}</p>}
                 </div>
               </div>
-            ))}
-            <Button className="ml-4" onClick={() => {
-              related.slice(0, 3).forEach((p) => addToCart(p))
-            }}>Add Bundle — ₹15</Button>
+            )}
           </div>
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section className="section-container section-padding-sm">
+          <SectionHeading title="You may also like" align="left" />
+          <RevealStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((p) => <ProductCard key={p.id} product={p} />)}
+          </RevealStagger>
+        </section>
+      )}
     </div>
   )
 }

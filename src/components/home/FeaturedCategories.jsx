@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import SectionHeading from '@/components/shared/SectionHeading'
 import { RevealItem } from '@/components/shared/Reveal'
-import { categories } from '@/data/categories'
+import { Link } from 'react-router-dom'
 import { cn } from '@/utils/cn'
 
 // Example icons for categories to match the eGrocery style
@@ -25,8 +25,10 @@ const categoryIcons = {
   'zig-zac': '〰️',
 }
 
-export default function FeaturedCategories() {
+export default function FeaturedCategories({ categories = [] }) {
   const scrollRef = useRef(null)
+  const list = categories.length ? categories : []
+  if (!list.length) return null
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -39,7 +41,7 @@ export default function FeaturedCategories() {
   return (
     <section id="categories" className="section-padding bg-surface">
       <div className="section-container relative">
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <SectionHeading
             title="Category"
             align="left"
@@ -69,20 +71,21 @@ export default function FeaturedCategories() {
           ref={scrollRef}
           className="hide-scrollbar flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4"
         >
-          {categories.slice(0, 10).map((cat, i) => (
-            <RevealItem key={cat.id} className="snap-start shrink-0">
-              <button
-                type="button"
-                className={cn(
-                  'category-icon-card w-[120px]',
-                  i === 1 ? 'active' : ''
-                )}
+          {list.slice(0, 12).map((cat) => (
+            <RevealItem key={cat.id || cat.slug} className="snap-start shrink-0">
+              <Link
+                to={cat.comingSoon ? '/coming-soon' : `/products?category=${encodeURIComponent(cat.slug)}`}
+                className={cn('category-icon-card w-[120px]', cat.comingSoon && 'opacity-60')}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-border-subtle/30 text-2xl">
-                  {categoryIcons[cat.slug] || '🛒'}
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-border-subtle/30 text-2xl">
+                  {cat.image ? (
+                    <img src={cat.image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    categoryIcons[cat.slug] || '🛒'
+                  )}
                 </div>
                 <p className="text-center text-xs font-semibold text-main">{cat.name}</p>
-              </button>
+              </Link>
             </RevealItem>
           ))}
         </div>

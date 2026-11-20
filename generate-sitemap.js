@@ -6,10 +6,9 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Define paths
-const productsFilePath = path.join(__dirname, 'src', 'data', 'products.js')
 const sitemapOutputPath = path.join(__dirname, 'public', 'sitemap.xml')
 
-const DOMAIN = 'https://zaylosnacks.com'
+const DOMAIN = (process.env.SITE_URL || 'https://zaylosnacks.com').replace(/\/+$/, '')
 
 // 1. Static pages
 const staticPages = [
@@ -23,20 +22,21 @@ const staticPages = [
   { path: 'gallery', priority: '0.7', changefreq: 'weekly' }
 ]
 
-// 2. Read products to extract slugs
+// 2. Product slugs from the live API (no static product data). If the API is
+//    unreachable at build time, the sitemap is generated with static pages only.
+const API = (process.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
 let productSlugs = []
 try {
-  const content = fs.readFileSync(productsFilePath, 'utf8')
-  // Regular expression to match slug: 'some-slug'
-  const slugRegex = /slug:\s*['"]([^'"]+)['"]/g
-  let match
-  while ((match = slugRegex.exec(content)) !== null) {
-    productSlugs.push(match[1])
+  for (let page = 1; page <= 50; page += 1) {
+    const res = await fetch(`${API}/products?limit=100&page=${page}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const body = await res.json()
+    productSlugs.push(...(body.data || []).map((p) => p.slug).filter(Boolean))
+    if (!body.meta?.hasMore) break
   }
-  console.log(`Found ${productSlugs.length} product slug(s):`, productSlugs)
+  console.log(`Found ${productSlugs.length} product slug(s) from API`)
 } catch (error) {
-  console.error('Error reading or parsing products.js:', error)
-  process.exit(1)
+  console.warn(`Sitemap: could not fetch products from ${API} (${error.message}); static pages only.`)
 }
 
 // 3. Generate sitemap entries

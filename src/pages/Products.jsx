@@ -1,102 +1,103 @@
-import { useMemo, useState } from 'react'
-import { Search, LayoutGrid, List, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Search, LayoutGrid, List, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import ProductCard from '@/components/shared/ProductCard'
 import FilterSidebar from '@/components/shared/FilterSidebar'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import PageHero from '@/components/shared/PageHero'
-import { RevealStagger } from '@/components/shared/Reveal'
-import { products } from '@/data/products'
-import { categories } from '@/data/categories'
-import { Link } from 'react-router-dom'
 import SEO from '@/components/shared/SEO'
+import { RevealStagger } from '@/components/shared/Reveal'
+import { EmptyState, ErrorState, ProductCardSkeleton, formatINR } from '@/components/shared/States'
+import { useBanners, useCategories, useProducts } from '@/hooks/useCatalog'
+import PromoBanner from '@/components/shared/PromoBanner'
+import { cn } from '@/utils/cn'
+
+const PAGE_SIZE = 12
 
 export default function Products() {
-  const productsSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "ZAY'LO Snacks",
-    "description": "Our complete list of premium crispy puffed snacks, pasta snacks, and crinkle-cut chips.",
-    "numberOfItems": products.length,
-    "itemListElement": products.map((p, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
-      "url": `https://zaylosnacks.com/products/${p.slug}`,
-      "name": p.name
-    }))
-  }
-  const [search, setSearch] = useState('')
-  const [selectedCategories, setSelectedCategories] = useState([])
-  const [sortBy, setSortBy] = useState('popular')
+  const [params, setParams] = useSearchParams()
+  const q = params.get('q') || ''
+  const sort = params.get('sort') || 'popular'
+  const page = Math.max(1, Number(params.get('page')) || 1)
+  const category = params.get('category') || ''
+  const minPrice = params.get('minPrice') || ''
+  const maxPrice = params.get('maxPrice') || ''
+  const inStock = params.get('inStock') === 'true'
+  const featured = params.get('featured') === 'true'
+  const selected = useMemo(() => category.split(',').filter(Boolean), [category])
+
+  const [search, setSearch] = useState(q)
   const [listView, setListView] = useState(false)
-  const [quickViewProduct, setQuickViewProduct] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [quickView, setQuickView] = useState(null)
 
-  const activeCategories = categories.filter((c) => !c.comingSoon)
+  useEffect(() => setSearch(q), [q])
 
-  const filtered = useMemo(() => {
-    let result = [...products]
-    if (search) {
-      const q = search.toLowerCase()
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.flavor.toLowerCase().includes(q) ||
-          p.tagline.toLowerCase().includes(q),
-      )
-    }
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) => selectedCategories.includes(p.slug))
-    }
-    switch (sortBy) {
-      case 'rating':
-        result.sort((a, b) => b.rating - a.rating)
-        break
-      case 'newest':
-        result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
-        break
-      case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      default:
-        result.sort((a, b) => b.reviewCount - a.reviewCount)
-    }
-    return result
-  }, [search, selectedCategories, sortBy])
-
-  const toggleCategory = (id) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    )
-    // On mobile, clicking a filter might be intended to just toggle, but closing after selection is a UX preference
-    // We'll let them keep it open to select multiple, so we won't close it automatically here.
+  const update = (patch, { resetPage = true } = {}) => {
+    const next = new URLSearchParams(params)
+    Object.entries(patch).forEach(([k, v]) => (v === '' || v == null || v === false ? next.delete(k) : next.set(k, String(v))))
+    if (resetPage) next.delete('page')
+    setParams(next, { replace: false })
   }
+
+  // Debounced search → URL
+  useEffect(() => {
+    if (search === q) return undefined
+    const t = setTimeout(() => update({ q: search.trim() }), 350)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const query = { q, sort, page, limit: PAGE_SIZE, category, minPrice, maxPrice, inStock: inStock || undefined, featured: featured || undefined }
+  const bannersQuery = useBanners('products')
+  // Category-specific banner (link contains ?category=<slug>) wins over the generic one
+  const topBanner =
+    (category && bannersQuery.data?.find((b) => b.link?.includes('category=' + selected[0]))) ||
+    bannersQuery.data?.find((b) => !b.link?.includes('category='))
+  const { data, isLoading, isError, error, refetch, isFetching } = useProducts(query)
+  const categoriesQuery = useCategories()
+  const products = data?.data || []
+  const meta = data?.meta
+
+  const toggleCategory = (slug) => {
+    const next = selected.includes(slug) ? selected.filter((c) => c !== slug) : [...selected, slug]
+    update({ category: next.join(',') })
+  }
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page])
+
+  const hasFilters = q || category || minPrice || maxPrice || inStock || featured || sort !== 'popular'
 
   return (
     <div className="bg-background">
       <SEO
         title="Shop Crispy Namkeen & Puffed Snacks"
-        description="Explore the full ZAY'LO snacks range: Moon Lite, Katori, Dhamal Chokdi, Noodles, 5PM Pasta, Salted Pipe, and Zig Zac chips. Premium quality at an unbeatable value."
+        description="Explore the full ZAY'LO snacks range — search, filter by category and price, and order online."
         path="/products"
-        structuredData={productsSchema}
       />
       <PageHero
         title="All Products"
-        subtitle="Seven iconic ZAY'LO flavours — premium quality, unbeatable ₹5 value."
+        subtitle={meta ? `${meta.total} product${meta.total === 1 ? '' : 's'} available` : 'Browse our complete range'}
         breadcrumb={
           <>
-            <Link to="/" className="hover:text-brand-primary transition-colors">Home</Link> / Products
+            <Link to="/" className="transition-colors hover:text-brand-primary">Home</Link> / Products
           </>
         }
       />
 
-      <div className="section-container section-padding !pt-10">
+      {topBanner && <PromoBanner banner={topBanner} products={products} className="pt-6" />}
+
+      <div className="section-container section-padding !pt-8">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative max-w-lg flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
-              type="text"
+              type="search"
               placeholder="Search by name, flavour..."
+              aria-label="Search products"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input-field !pl-11"
@@ -105,70 +106,131 @@ export default function Products() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
               className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-4 py-2.5 text-sm font-medium text-body lg:hidden"
             >
               <SlidersHorizontal className="h-4 w-4" />
               Filters
             </button>
-            <span className="text-sm text-muted">{filtered.length} products</span>
+            {meta && <span className="text-sm text-muted">{meta.total} products</span>}
             <div className="flex rounded-full border border-border-subtle bg-surface p-1">
-              <button
-                type="button"
-                onClick={() => setListView(false)}
-                className={`rounded-full p-2 transition-colors duration-200 ${!listView ? 'bg-brand-primary text-white' : 'text-muted hover:bg-brand-primary/10 hover:text-brand-primary'}`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setListView(true)}
-                className={`rounded-full p-2 transition-colors duration-200 ${listView ? 'bg-brand-primary text-white' : 'text-muted hover:bg-brand-primary/10 hover:text-brand-primary'}`}
-              >
-                <List className="h-4 w-4" />
-              </button>
+              {[
+                { v: false, Icon: LayoutGrid, label: 'Grid view' },
+                { v: true, Icon: List, label: 'List view' },
+              ].map(({ v, Icon, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label={label}
+                  aria-pressed={listView === v}
+                  onClick={() => setListView(v)}
+                  className={cn(
+                    'rounded-full p-2 transition-colors duration-200',
+                    listView === v ? 'bg-brand-primary text-white' : 'text-muted hover:bg-brand-primary/10 hover:text-brand-primary',
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         <div className="grid gap-10 lg:grid-cols-[280px_1fr]">
           <FilterSidebar
-            categories={activeCategories}
-            selectedCategories={selectedCategories}
+            categories={categoriesQuery.data || []}
+            categoriesLoading={categoriesQuery.isLoading}
+            selectedCategories={selected}
             onCategoryChange={toggleCategory}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            className={`${showFilters ? 'block' : 'hidden'} lg:block`}
+            sortBy={sort}
+            onSortChange={(v) => update({ sort: v === 'popular' ? '' : v })}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onPriceChange={(min, max) => update({ minPrice: min, maxPrice: max })}
+            inStock={inStock}
+            onInStockChange={(v) => update({ inStock: v ? 'true' : '' })}
+            onReset={hasFilters ? () => setParams(new URLSearchParams()) : undefined}
+            className={cn(showFilters ? 'block' : 'hidden', 'lg:block')}
           />
 
-          <RevealStagger
-            className={`grid gap-6 ${listView ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'}`}
-          >
-            {filtered.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                listView={listView}
-                onQuickView={setQuickViewProduct}
+          <div className={cn('transition-opacity duration-300', isFetching && !isLoading && 'opacity-60')}>
+            {isError ? (
+              <ErrorState title="Couldn't load products" error={error} onRetry={refetch} />
+            ) : isLoading ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}
+              </div>
+            ) : products.length === 0 ? (
+              <EmptyState
+                title="No products found"
+                message="Try a different search or clear the filters."
+                action={hasFilters && <Button variant="secondary" onClick={() => setParams(new URLSearchParams())}>Clear filters</Button>}
               />
-            ))}
-          </RevealStagger>
-        </div>
+            ) : (
+              <RevealStagger
+                key={`${q}|${category}|${sort}|${page}|${minPrice}|${maxPrice}|${inStock}`}
+                className={cn('grid gap-6', listView ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3')}
+              >
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} listView={listView} onQuickView={setQuickView} />
+                ))}
+              </RevealStagger>
+            )}
 
-        {filtered.length === 0 && (
-          <p className="py-16 text-center text-muted">No products match your search.</p>
-        )}
+            {meta && meta.totalPages > 1 && (
+              <nav className="mt-10 flex items-center justify-center gap-2" aria-label="Pagination">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => update({ page: page - 1 }, { resetPage: false })}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle bg-surface disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === meta.totalPages || Math.abs(p - page) <= 1)
+                  .map((p, i, arr) => (
+                    <span key={p} className="flex items-center gap-2">
+                      {i > 0 && p - arr[i - 1] > 1 && <span className="text-muted">…</span>}
+                      <button
+                        type="button"
+                        onClick={() => update({ page: p }, { resetPage: false })}
+                        aria-current={p === page ? 'page' : undefined}
+                        className={cn(
+                          'h-10 min-w-10 rounded-full px-3 text-sm font-semibold',
+                          p === page ? 'bg-brand-primary text-white' : 'border border-border-subtle bg-surface text-main hover:border-brand-primary',
+                        )}
+                      >
+                        {p}
+                      </button>
+                    </span>
+                  ))}
+                <button
+                  type="button"
+                  disabled={page >= meta.totalPages}
+                  onClick={() => update({ page: page + 1 }, { resetPage: false })}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle bg-surface disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </nav>
+            )}
+          </div>
+        </div>
       </div>
 
-      <Modal open={!!quickViewProduct} onClose={() => setQuickViewProduct(null)} title={quickViewProduct?.name}>
-        {quickViewProduct && (
+      <Modal open={!!quickView} onClose={() => setQuickView(null)} title={quickView?.name}>
+        {quickView && (
           <div className="text-center">
             <div className="product-stage mx-auto max-w-xs p-6">
-              <img src={quickViewProduct.image} alt={quickViewProduct.name} className="mx-auto h-56 object-contain" />
+              <img src={quickView.image} alt={quickView.name} className="mx-auto h-56 object-contain" />
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-muted">{quickViewProduct.description}</p>
-            <p className="mt-3 text-2xl font-extrabold text-brand-primary">₹{quickViewProduct.mrp}</p>
-            <Link to={`/products/${quickViewProduct.slug}`} className="mt-5 inline-block">
+            {quickView.tagline && <p className="mt-4 text-sm leading-relaxed text-muted">{quickView.tagline}</p>}
+            <p className="mt-3 text-2xl font-extrabold text-brand-primary">{formatINR(quickView.price)}</p>
+            <Link to={`/products/${quickView.slug}`} className="mt-5 inline-block" onClick={() => setQuickView(null)}>
               <Button>View Full Details</Button>
             </Link>
           </div>

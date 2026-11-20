@@ -1,18 +1,16 @@
 import { motion } from 'framer-motion'
 
-export default function Reveal({
-  children,
-  className,
-  delay = 0,
-  y = 20,
-  once = true,
-}) {
+// Industry-standard entrance: ~0.7s ease-out-expo, short travel, gentle stagger.
+const EASE = [0.22, 1, 0.36, 1]
+const VIEWPORT = { once: true, amount: 0.15, margin: '0px 0px -60px 0px' }
+
+export default function Reveal({ children, className, delay = 0, y = 24, once = true }) {
   return (
     <motion.div
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once, margin: '-20px' }}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ ...VIEWPORT, once }}
+      transition={{ duration: 0.7, delay, ease: EASE }}
       className={className}
     >
       {children}
@@ -20,15 +18,15 @@ export default function Reveal({
   )
 }
 
-export function RevealStagger({ children, className, stagger = 0.05 }) {
+export function RevealStagger({ children, className, stagger = 0.08 }) {
   return (
     <motion.div
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, margin: '-20px' }}
+      viewport={VIEWPORT}
       variants={{
         hidden: {},
-        show: { transition: { staggerChildren: stagger } },
+        show: { transition: { staggerChildren: stagger, delayChildren: 0.05 } },
       }}
       className={className}
     >
@@ -41,8 +39,8 @@ export function RevealItem({ children, className }) {
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 16 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+        hidden: { opacity: 0, y: 24 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: EASE } },
       }}
       className={className}
     >

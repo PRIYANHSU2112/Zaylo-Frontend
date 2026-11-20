@@ -1,22 +1,38 @@
 import { useEffect } from 'react'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 
 export default function SEO({
   title,
   description,
   path = '',
   ogType = 'website',
-  ogImage = 'https://zaylosnacks.com/images/og-image.png', // Fallback brand image
-  structuredData = null
+  ogImage,
+  structuredData = null,
+  noindex = false,
 }) {
-  const siteName = "ZAY'LO Snacks"
+  const { settings } = useSiteSettings()
+  const siteName = settings.general?.siteName || "ZAY'LO Snacks"
+  const siteUrl = (settings.brand?.siteUrl || 'https://zaylosnacks.com').replace(/\/+$/, '')
+  const resolvedOgImage = ogImage || settings.brand?.ogImageUrl || `${siteUrl}/images/og-image.png`
   const fullTitle = title ? `${title} | ${siteName}` : siteName
-  const canonicalUrl = `https://zaylosnacks.com${path}`
+  const canonicalUrl = `${siteUrl}${path}`
 
   useEffect(() => {
-    // 1. Update Document Title
     document.title = fullTitle
+    {
+      let robots = document.querySelector('meta[name="robots"]')
+      if (noindex) {
+        if (!robots) {
+          robots = document.createElement('meta')
+          robots.setAttribute('name', 'robots')
+          document.head.appendChild(robots)
+        }
+        robots.setAttribute('content', 'noindex, nofollow')
+      } else if (robots) {
+        robots.remove()
+      }
+    }
 
-    // Helper: Update or append meta tags
     const updateMetaTag = (attrName, attrVal, content) => {
       if (content === undefined || content === null) return
       let el = document.querySelector(`meta[${attrName}="${attrVal}"]`)
@@ -28,7 +44,6 @@ export default function SEO({
       el.setAttribute('content', content)
     }
 
-    // Helper: Update or append link tags
     const updateLinkTag = (rel, href) => {
       if (!href) return
       let el = document.querySelector(`link[rel="${rel}"]`)
@@ -40,7 +55,6 @@ export default function SEO({
       el.setAttribute('href', href)
     }
 
-    // Helper: Update or inject JSON-LD script block
     const updateJsonLd = (data) => {
       let el = document.getElementById('json-ld-seo')
       if (!data) {
@@ -56,35 +70,25 @@ export default function SEO({
       el.textContent = JSON.stringify(data)
     }
 
-    // 2. Primary Meta Description
     updateMetaTag('name', 'description', description)
-
-    // 3. Canonical Link tag
     updateLinkTag('canonical', canonicalUrl)
-
-    // 4. Open Graph Meta Tags (Facebook, LinkedIn, Slack, etc.)
     updateMetaTag('property', 'og:title', fullTitle)
     updateMetaTag('property', 'og:description', description)
     updateMetaTag('property', 'og:type', ogType)
     updateMetaTag('property', 'og:url', canonicalUrl)
-    updateMetaTag('property', 'og:image', ogImage)
+    updateMetaTag('property', 'og:image', resolvedOgImage)
     updateMetaTag('property', 'og:site_name', siteName)
-
-    // 5. Twitter Card Meta Tags
     updateMetaTag('name', 'twitter:card', 'summary_large_image')
     updateMetaTag('name', 'twitter:title', fullTitle)
     updateMetaTag('name', 'twitter:description', description)
-    updateMetaTag('name', 'twitter:image', ogImage)
-
-    // 6. JSON-LD Structured Data
+    updateMetaTag('name', 'twitter:image', resolvedOgImage)
     updateJsonLd(structuredData)
 
-    // Cleanup: Remove structured data on page unmount to prevent bleeding
     return () => {
       const el = document.getElementById('json-ld-seo')
       if (el) el.remove()
     }
-  }, [fullTitle, description, canonicalUrl, ogType, ogImage, structuredData])
+  }, [fullTitle, description, canonicalUrl, ogType, resolvedOgImage, siteName, structuredData, noindex])
 
   return null
 }
