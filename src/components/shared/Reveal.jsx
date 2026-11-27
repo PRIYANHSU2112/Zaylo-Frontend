@@ -4,9 +4,10 @@ import { motion } from 'framer-motion'
 const EASE = [0.22, 1, 0.36, 1]
 const VIEWPORT = { once: true, amount: 0.15, margin: '0px 0px -60px 0px' }
 
-export default function Reveal({ children, className, delay = 0, y = 24, once = true }) {
+export default function Reveal({ children, className, delay = 0, y = 24, once = true, id }) {
   return (
     <motion.div
+      id={id}
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ ...VIEWPORT, once }}

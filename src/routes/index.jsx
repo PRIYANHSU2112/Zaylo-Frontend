@@ -2,23 +2,9 @@ import { lazy } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import RequireAuth from '@/components/shared/RequireAuth'
 
-const Home = lazy(() => import('@/pages/Home'))
-const Products = lazy(() => import('@/pages/Products'))
-const ProductDetail = lazy(() => import('@/pages/ProductDetail'))
-const About = lazy(() => import('@/pages/About'))
-const Contact = lazy(() => import('@/pages/Contact'))
-const Dealer = lazy(() => import('@/pages/Dealer'))
-const ComingSoon = lazy(() => import('@/pages/ComingSoon'))
-const Cart = lazy(() => import('@/pages/Cart'))
-const Wishlist = lazy(() => import('@/pages/Wishlist'))
-const Checkout = lazy(() => import('@/pages/Checkout'))
-const Profile = lazy(() => import('@/pages/Profile'))
-const BulkOrder = lazy(() => import('@/pages/BulkOrder'))
-const Blog = lazy(() => import('@/pages/Blog'))
-const Gallery = lazy(() => import('@/pages/Gallery'))
-const Login = lazy(() => import('@/pages/Login'))
-const Register = lazy(() => import('@/pages/Register'))
-const OrderDetail = lazy(() => import('@/pages/OrderDetail'))
+import { pages } from './preload'
+
+const Page = Object.fromEntries(Object.entries(pages).map(([name, load]) => [name, lazy(load)]))
 
 const guard = (el) => <RequireAuth>{el}</RequireAuth>
 
@@ -26,24 +12,24 @@ export const routes = [
   {
     element: <MainLayout />,
     children: [
-      { path: '/', element: <Home /> },
-      { path: '/products', element: <Products /> },
-      { path: '/products/:slug', element: <ProductDetail /> },
-      { path: '/about', element: <About /> },
-      { path: '/contact', element: <Contact /> },
-      { path: '/dealer', element: <Dealer /> },
-      { path: '/coming-soon', element: <ComingSoon /> },
-      { path: '/cart', element: <Cart /> },
-      { path: '/wishlist', element: <Wishlist /> },
-      { path: '/checkout', element: guard(<Checkout />) },
-      { path: '/profile', element: guard(<Profile />) },
-      { path: '/orders/:id', element: guard(<OrderDetail />) },
-      { path: '/login', element: <Login /> },
-      { path: '/register', element: <Register /> },
-      { path: '/bulk-order', element: <BulkOrder /> },
-      { path: '/blog', element: <Blog /> },
-      { path: '/gallery', element: <Gallery /> },
-      { path: '*', element: <ComingSoon /> },
+      { path: '/', element: <Page.Home /> },
+      { path: '/products', element: <Page.Products /> },
+      { path: '/products/:slug', element: <Page.ProductDetail /> },
+      { path: '/about', element: <Page.About /> },
+      { path: '/contact', element: <Page.Contact /> },
+      { path: '/dealer', element: <Page.Dealer /> },
+      { path: '/coming-soon', element: <Page.ComingSoon /> },
+      { path: '/cart', element: <Page.Cart /> },
+      { path: '/wishlist', element: <Page.Wishlist /> },
+      { path: '/checkout', element: guard(<Page.Checkout />) },
+      { path: '/profile', element: guard(<Page.Profile />) },
+      { path: '/orders/:id', element: guard(<Page.OrderDetail />) },
+      { path: '/login', element: <Page.Login /> },
+      { path: '/register', element: <Page.Register /> },
+      { path: '/bulk-order', element: <Page.BulkOrder /> },
+      { path: '/blog', element: <Page.Blog /> },
+      { path: '/gallery', element: <Page.Gallery /> },
+      { path: '*', element: <Page.ComingSoon /> },
     ],
   },
 ]

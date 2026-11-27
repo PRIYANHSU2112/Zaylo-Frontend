@@ -30,9 +30,9 @@ export default function PromoBanner({ banner, products = [], className }) {
       <Reveal className={cn('section-container', className)}>
         <CtaLink
           to={banner.link}
-          className="relative block aspect-[4/5] overflow-hidden rounded-[1.5rem] shadow-card sm:aspect-[16/7] md:rounded-[2rem] lg:aspect-[16/6]"
+          className="relative block aspect-[4/5] overflow-hidden rounded-[1.5rem] shadow-card md:aspect-[16/6] md:rounded-[2rem]"
         >
-          <BannerImage src={banner.imageUrl} mobileSrc={banner.mobileImageUrl} alt={banner.badge || 'Offer'} />
+          <BannerImage src={banner.imageUrl} mobileSrc={banner.mobileImageUrl} alt={banner.alt || banner.badge || 'Offer'} />
         </CtaLink>
       </Reveal>
     )

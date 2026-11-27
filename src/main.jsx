@@ -8,6 +8,7 @@ import { AuthProvider } from '@/context/AuthContext'
 import { ToastProvider } from '@/context/ToastContext'
 import App from '@/App'
 import '@/index.css'
+import { persistQueries, restorePersistedQueries } from '@/lib/queryPersist'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +19,10 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Instant repeat visits: show last real API data immediately, refresh in background
+restorePersistedQueries(queryClient)
+persistQueries(queryClient)
 
 const rootElement = document.getElementById('root')
 

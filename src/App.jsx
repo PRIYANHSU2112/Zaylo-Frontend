@@ -7,11 +7,8 @@ function App() {
 
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-svh items-center justify-center bg-background">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-primary border-t-transparent" />
-        </div>
-      }
+      // Pages suspend inside MainLayout (header/footer stay); this only covers the very first boot
+      fallback={<div className="min-h-svh bg-background" />}
     >
       {element}
     </Suspense>

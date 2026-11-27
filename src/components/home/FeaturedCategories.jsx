@@ -43,7 +43,7 @@ export default function FeaturedCategories({ categories = [] }) {
       <div className="section-container relative">
         <div className="mb-6 flex items-center justify-between">
           <SectionHeading
-            title="Category"
+            title="Range of Fullness"
             align="left"
             className="!mb-0"
           />

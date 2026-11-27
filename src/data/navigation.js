@@ -7,7 +7,7 @@ export const primaryNav = [
 ]
 
 export const secondaryNav = [
-  { label: 'Categories', href: '/#categories' },
+  { label: 'Range of Fullness', href: '/#categories' },
   { label: 'Manufacturing', href: '/about#manufacturing' },
   { label: 'Bulk Order', href: '/bulk-order' },
   { label: 'Blogs', href: '/blog' },

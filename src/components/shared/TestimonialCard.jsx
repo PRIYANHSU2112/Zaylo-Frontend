@@ -1,14 +1,26 @@
 import { Star } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
+const initials = (name = '') =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
 export default function TestimonialCard({ testimonial, className }) {
   // Use generic avatars based on name initials, but styled cleanly
   return (
     <div className={cn('testimonial-slide', className)}>
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary-light text-sm font-bold text-brand-primary-dark">
-          {testimonial.avatar}
-        </div>
+        {/^https?:\/\//.test(testimonial.avatar || '') ? (
+          <img src={testimonial.avatar} alt="" loading="lazy" className="h-10 w-10 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary-light text-sm font-bold text-brand-primary-dark">
+            {(testimonial.avatar || initials(testimonial.name)).slice(0, 3)}
+          </div>
+        )}
         <div>
           <p className="text-sm font-bold text-main">{testimonial.name}</p>
           <p className="text-xs text-muted">{testimonial.role}</p>

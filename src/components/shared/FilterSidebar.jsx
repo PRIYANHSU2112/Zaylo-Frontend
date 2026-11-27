@@ -11,6 +11,16 @@ export const SORT_OPTIONS = [
   { value: 'name', label: 'Name A-Z' },
 ]
 
+/** Main categories followed by their subcategories (one level). */
+function orderAsTree(categories) {
+  const mains = categories.filter((c) => !c.parent)
+  const out = []
+  for (const m of mains) out.push(m, ...categories.filter((c) => c.parent === m.id))
+  // subcategories whose parent is inactive/hidden still appear at the end
+  categories.forEach((c) => !out.includes(c) && out.push(c))
+  return out
+}
+
 /** Catalogue filters. Categories come from GET /categories; filtering happens server-side. */
 export default function FilterSidebar({
   categories = [],
@@ -38,14 +48,18 @@ export default function FilterSidebar({
   return (
     <aside className={cn('space-y-6', className)} aria-label="Product filters">
       <div>
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-main">Categories</h3>
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-main">Range of Fullness</h3>
         <div className="space-y-2">
           {categoriesLoading &&
             Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-5 w-3/4" />)}
-          {categories.map((cat) => (
+          {orderAsTree(categories).map((cat) => (
             <label
               key={cat.id}
-              className={cn('flex items-center gap-2 text-sm', cat.comingSoon ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}
+              className={cn(
+                'flex items-center gap-2 text-sm',
+                cat.parent && 'ml-6',
+                cat.comingSoon ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+              )}
             >
               <input
                 type="checkbox"
@@ -54,7 +68,7 @@ export default function FilterSidebar({
                 onChange={() => onCategoryChange(cat.slug)}
                 className="h-4 w-4 rounded border-border-subtle accent-[var(--theme-primary)]"
               />
-              <span className="text-body">{cat.name}</span>
+              <span className={cn('text-body', !cat.parent && 'font-semibold text-main')}>{cat.name}</span>
               {cat.comingSoon && <span className="text-xs text-brand-orange">Soon</span>}
             </label>
           ))}

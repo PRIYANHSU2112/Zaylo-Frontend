@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, ChevronLeft, ChevronRight, Truck, ShieldCheck, Leaf } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Truck, Wallet, PackageCheck } from 'lucide-react'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import BannerImage from '@/components/shared/BannerImage'
 import { cn } from '@/utils/cn'
 
@@ -67,14 +68,38 @@ function buildSlides(home) {
   const slides = []
 
   const heroBanners = home.banners?.hero || []
+  const showcase = (home.featuredProducts?.length ? home.featuredProducts : home.popularProducts || []).filter((p) => p.image)
 
-  // 1. Admin hero banners that are a finished creative (image, no heading) — full-bleed,
-  //    with separate mobile artwork when uploaded. Legacy landing images still supported.
-  heroBanners
-    .filter((b) => b.imageUrl && !b.title)
-    .forEach((b) =>
-      slides.push({ type: 'image', id: `banner-${b.id}`, url: b.imageUrl, mobileUrl: b.mobileImageUrl, link: b.link, alt: b.badge }),
-    )
+  // Admin → Banners (Hero) is the source of truth: when hero banners exist, the slider shows
+  // exactly those, in their display order. Auto-built slides are only a fallback.
+  if (heroBanners.length || home.landingImages?.some((i) => i.slot === 'hero')) {
+    heroBanners.forEach((b) => {
+      if (b.imageUrl && !b.title) {
+        // finished creative (heading/CTA baked into the artwork) — full-bleed, mobile art < 768px
+        slides.push({ type: 'image', id: `banner-${b.id}`, url: b.imageUrl, mobileUrl: b.mobileImageUrl, link: b.link, alt: b.alt || b.badge })
+      } else if (b.title) {
+        slides.push({
+          type: 'designed',
+          id: `promo-${b.id}`,
+          badge: b.badge,
+          eyebrow: b.badge,
+          title: b.title,
+          subtitle: b.subtitle,
+          images: b.imageUrl ? [{ src: b.imageUrl, alt: b.title, cover: true }] : showcase.slice(0, 3).map((p) => ({ src: p.image, alt: p.name })),
+          bgImage: b.bgImageUrl || '',
+          cta: b.cta || 'Shop Now',
+          link: b.link || '/products',
+        })
+      }
+    })
+    ;(home.landingImages || [])
+      .filter((img) => img.slot === 'hero' && img.url)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .forEach((img) => slides.push({ type: 'image', id: `img-${img.id}`, ...img }))
+    return slides.map((sl, i) => ({ ...sl, theme: THEMES[THEME_ORDER[i % THEME_ORDER.length]] }))
+  }
+
+  // ---- Fallback (no hero banners yet): build slides from real catalogue data ----
   ;(home.landingImages || [])
     .filter((img) => img.slot === 'hero' && img.url)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -98,28 +123,6 @@ function buildSlides(home) {
         images: b.items.slice(0, 3).map((i) => ({ src: i.image, alt: i.name })),
         cta: 'Shop Now',
         link: '/#bundles',
-      })
-    })
-
-  // 3. Designed hero banners (heading + CTA) from Admin → Banners (placement: Hero)
-  const showcase = (home.featuredProducts?.length ? home.featuredProducts : home.popularProducts || []).filter((p) => p.image)
-  heroBanners
-    .filter((b) => b.title)
-    .forEach((p) => {
-      slides.push({
-        type: 'designed',
-        id: `promo-${p.id}`,
-        badge: p.badge,
-        eyebrow: p.badge,
-        title: p.title,
-        subtitle: p.subtitle,
-        // uploaded side image, else real product photos (no stock imagery)
-        images: p.imageUrl
-          ? [{ src: p.imageUrl, alt: p.title, cover: true }]
-          : showcase.slice(0, 3).map((s) => ({ src: s.image, alt: s.name })),
-        bgImage: p.bgImageUrl || '',
-        cta: p.cta || 'Shop Now',
-        link: p.link || '/products',
       })
     })
 
@@ -326,15 +329,24 @@ function ImageSlide({ slide, priority }) {
   )
 }
 
-const features = [
-  { icon: Truck, label: 'Free Delivery' },
-  { icon: ShieldCheck, label: '100% Quality' },
-  { icon: Leaf, label: 'Pure Veg' },
-]
+/** Trust strip built from the store's real checkout rules (Admin → Settings → Shipping & Checkout). */
+function trustFeatures(commerce) {
+  if (!commerce) return []
+  const list = []
+  if (commerce.freeShippingThreshold > 0) list.push({ icon: Truck, label: `Free delivery above ₹${commerce.freeShippingThreshold}` })
+  else if (commerce.shippingFee > 0) list.push({ icon: Truck, label: `Delivery ₹${commerce.shippingFee}` })
+  else list.push({ icon: Truck, label: 'Free delivery' })
+  if (commerce.codEnabled) list.push({ icon: Wallet, label: 'Cash on Delivery' })
+  list.push({ icon: PackageCheck, label: 'Track your order' })
+  return list
+}
 
 export default function HeroCarousel({ home }) {
   const slides = useMemo(() => buildSlides(home), [home])
+  const { settings } = useSiteSettings()
+  const features = trustFeatures(settings.commerce)
   const count = slides.length
+  const allArtwork = count > 0 && slides.every((sl) => sl.type === 'image')
   const hasSlides = count > 0
   const reduceMotion = useReducedMotion()
   const [[index, direction], setState] = useState([0, 1])
@@ -419,7 +431,14 @@ export default function HeroCarousel({ home }) {
       className="relative bg-background"
       onKeyDown={onKeyDown}
     >
-      <div className="relative h-[560px] overflow-hidden bg-[#d71920] sm:h-[520px] md:h-[440px] lg:h-[520px] xl:h-[560px]">
+      <div
+        className={cn(
+          'relative overflow-hidden bg-[#d71920]',
+          allArtwork
+            ? 'aspect-[4/5] md:aspect-[16/6]'
+            : 'h-[560px] sm:h-[520px] md:h-[440px] lg:h-[520px] xl:h-[560px]',
+        )}
+      >
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={`${slide.id}-${index}`}
@@ -464,7 +483,13 @@ export default function HeroCarousel({ home }) {
 
         {count > 1 && (
           <>
-            <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-3 md:bottom-6">
+            <div
+              className={cn(
+                'absolute inset-x-0 z-20 items-center justify-center gap-3',
+                // phone artwork has its button near the bottom — controls move below the slide there
+                allArtwork ? 'bottom-6 hidden md:flex' : 'bottom-4 flex md:bottom-6',
+              )}
+            >
               <button
                 type="button"
                 onClick={() => paginate(-1)}
@@ -511,7 +536,26 @@ export default function HeroCarousel({ home }) {
         )}
       </div>
 
-      {/* Trust strip */}
+      {allArtwork && count > 1 && (
+        <div className="flex items-center justify-center gap-2 bg-surface py-3 md:hidden" aria-label="Choose slide">
+          {slides.map((sl, i) => (
+            <button
+              key={sl.id}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              aria-current={i === active}
+              className={cn(
+                'h-2 rounded-full transition-[width,background-color] duration-500 ease-out',
+                i === active ? 'w-7 bg-brand-primary' : 'w-2 bg-border-subtle',
+              )}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Trust strip (real store rules only) */}
+      {features.length > 0 && (
       <div className="border-b border-border-subtle bg-surface">
         <div className="section-container flex flex-wrap items-center justify-center gap-x-8 gap-y-2 py-3">
           {features.map(({ icon: Icon, label }) => (
@@ -522,6 +566,7 @@ export default function HeroCarousel({ home }) {
           ))}
         </div>
       </div>
+      )}
     </section>
   )
 }

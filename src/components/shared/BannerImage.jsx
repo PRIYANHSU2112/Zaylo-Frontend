@@ -19,7 +19,7 @@ export default function BannerImage({
 
   return (
     <div className={cn('absolute inset-0 overflow-hidden', className)}>
-      {!loaded && <div className="skeleton-shimmer absolute inset-0" aria-hidden="true" />}
+      {!loaded && !failed && <div className="skeleton-shimmer absolute inset-0" aria-hidden="true" />}
       {src && !failed && (
         <picture>
           {mobileSrc && <source media="(max-width: 767px)" srcSet={mobileSrc} />}

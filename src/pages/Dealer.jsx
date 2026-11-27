@@ -70,7 +70,7 @@ export default function Dealer() {
         )}
 
         <div className="mt-10 grid gap-12 lg:grid-cols-2">
-          <Reveal>
+          <Reveal className="scroll-mt-32" id="dealer-form">
             <SectionHeading title="Dealer Registration" align="left" className="!mb-6" />
             {lead.submitted ? (
               <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-emerald-900">
